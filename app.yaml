@@ -5,7 +5,7 @@ api_version: 1
 
 handlers:
 - url: /cron
-  script: get_list.py
+  script: main.py
   login: admin
 - url: /css
   static_dir: css
