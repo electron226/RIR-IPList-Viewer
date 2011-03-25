@@ -3,14 +3,10 @@
 		{% for record in iptable %}
 		<table>
 			<tr>
-				<!--
 				<td>{{ record.registry|escape }}</td>
 				<td>{{ record.cc|escape }}</td>
 				<td>{{ record.start|escape }}</td>
 				<td>{{ record.value|escape }}</td>
-				-->
-				<td>{{ record.StartIP|escape }}</td>
-				<td>{{ record.EndIP|escape }}</td>
 			</tr>
 		</table>
 		{% endfor %}
