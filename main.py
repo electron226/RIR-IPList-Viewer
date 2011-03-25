@@ -73,13 +73,7 @@ class LACNIC(IPTable): pass
 class AFRINIC(IPTable): pass
 
 def Clear(nic_class):
-    iptable = nic_class.all()
-    while True:
-        ip = iptable.fetch(1000)
-        if ip:
-            db.delete(ip)
-        else:
-            break
+    db.delete(nic_class.all())
 
 def AllClear():
     Clear(ARIN)
@@ -87,14 +81,7 @@ def AllClear():
     Clear(RIPE)
     Clear(LACNIC)
     Clear(AFRINIC)
-
-    vtable = Version.all()
-    while True:
-        v = vtable.fetch(10)
-        if v:
-            db.delete(v)
-        else:
-            break
+    Clear(Version)
 
 # IPリストをダウンロードするクラス
 class IPList():
@@ -122,7 +109,8 @@ class IPList():
         # 前回のハッシュ値と取得先のハッシュ値を比較
         get = True
         newhash = None
-        vtable = db.GqlQuery("SELECT * FROM Version WHERE registry = '%s'" % nic)
+        vtable = Version.all()
+        vtable.filter('registry =', nic)
         vresult = vtable.fetch(1)
         if vresult:
             oldhash = vresult[0].hash
@@ -149,7 +137,8 @@ class IPList():
                 return False
 
             # 一致するリストを一度全て削除
-            Clear(nic_class)
+            # Clear(nic_class)
+            db.delete(nic_class.all())
 
             # リストをデータベースに登録
             iptableobj = []
@@ -196,14 +185,9 @@ class CronHandler(webapp.RequestHandler):
 
 class MainHandler(webapp.RequestHandler):
     def get(self):
-        iptable = ARIN.all()
-        record = iptable.fetch(1000)
-
-        template_values = {
-                'iptable': record
-                }
-        path = os.path.join(os.path.dirname(__file__), 'main.html')
-        self.response.out.write(template.render(path, template_values))
+        # クライアントのJavaScriptで処理をやればよくね？
+        # ファイルを保存 -> アクセスされる -> ダウンロードさせて処理
+        pass
 
 def main():
     application = webapp.WSGIApplication([('/', MainHandler), ('/cron', CronHandler)], debug = True)
