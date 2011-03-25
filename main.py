@@ -78,20 +78,11 @@ class IPTable(db.Model):
     start = db.StringProperty()
     value = db.IntegerProperty()
 
-class ARIN(IPTable):
-    pass
-
-class APNIC(IPTable):
-    pass
-
-class RIPE(IPTable):
-    pass
-
-class LACNIC(IPTable):
-    pass
-
-class AFRINIC(IPTable):
-    pass
+class ARIN(IPTable): pass
+class APNIC(IPTable): pass
+class RIPE(IPTable): pass
+class LACNIC(IPTable): pass
+class AFRINIC(IPTable): pass
 
 def Clear(nic_class):
     iptable = nic_class.all()
@@ -117,29 +108,66 @@ def AllClear():
         else:
             break
 
-def get_iptable():
-    iptable = memcache.get('iptable')
-    if iptable:
-        return iptable
+def get_cache(key, key_prefix = '', namespace = None):
+    if isinstance(key, list):
+        return memcache.get_multi(key, key_prefix, namespace)
     else:
-        iptable = IPTable().all()
-        record = iptable.fetch(1000)
-        if not memcache.add('iptable', record):
-            logging.error("Memcache get iptable Failure.")
-        return record
+        result = memcache.get(key, namespace)
+        return { key : result }
 
-def set_iptable(value):
-    if not memache.set('iptable', value):
-        logging.error("Memcache set iptable Failure.")
-
-def delete_iptable():
-    result = memcache.delete('iptable')
-    if result == 0:
-        logging.error("Memcache delete iptable Failure.")
-    elif result == 1:
-        logging.warning("Memcache delete iptable Missing.")
+def add_cache(key, value = None, time = 0, key_prefix = '', min_compress_len = 0, namespace = None):
+    if isinstance(key, list):
+        misslist = memcache.add_multi(key, time, key_prefix, min_compress_len, namespace)
+        if len(misslist) != 0:
+            logging.error("Memcache add_multi Failure.")
+            for miss in misslist:
+                logging.error("\n\t%s" % miss)
     else:
-        logging.info("Memcache delete iptable Success.")
+        if not memcache.add(key, value, time, min_compress_len, namespace):
+            logging.error("Memcache add %s Failure." % key)
+
+def set_cache(key, value = None, time = 0, key_prefix = '', min_compress_len = 0, namespace = None):
+    if isinstance(key, list):
+        misslist = memcache.set_multi(key, time, key_prefix, min_compress_len, namespace)
+        if len(misslist) != 0:
+            logging.error("Memcache set_multi Failure.")
+            for miss in misslist:
+                logging.error("\n\t%s" % miss)
+    else:
+        if not memcache.set(key, value, time, min_compress_len, namespace):
+            logging.error("Memcache set %s Failure." % key)
+
+def replace_cache(key, value = None, time = 0, key_prefix = '', min_compress_len = 0, namespace = None):
+    addflag = False
+    if isinstance(key, list):
+        misslist = memcache.replace_multi(key, time, key_prefix, min_compress_len, namespace)
+        count = len(misslist)
+        if count == len(key):
+            logging.error("Memcache replace_multi All Failure.")
+            addflag = True
+        elif count != 0:
+            logging.error("Memcache replace_multi Failure.")
+            for miss in misslist:
+                logging.error("\n\t%s" % miss)
+    else:
+        if not memcache.replace(key, value, time, min_compress_len, namespace):
+            logging.error("Memcache replace Failure.")
+            addflag = True
+
+    if addflag:
+        logging.info("Memcache add process Start.")
+        add_cache(key, value, time, key_prefix, min_compress_len, namespace)
+
+def delete_cache(key, seconds = 0, key_prefix = '', namespace = None):
+    if isinstance(key, list):
+        if not memcache.delete_multi(key, seconds, key_prefix, namespace):
+            logging.error("Memcache delete_multi Failure.")
+    else:
+        result = memcache.delete(key, seconds, namespace)
+        if result == 0:
+            logging.error("Memcache delete %s Failure." % key)
+        elif result == 1:
+            logging.warning("Memcache delete %s Missing." % key)
 
 """
 # デフォルトの国コード、国名を読み込み、連想配列を返す
@@ -214,13 +242,17 @@ class IPList():
                 return False
 
             # 一致するリストを一度全て削除
-            Clear(nic_class)
+            # Clear(nic_class)
 
             # リストをデータベースに登録
             iptableobj = []
             for line in f.readlines():
                 record = self.record_rule.search(line)
                 if record:
+                    ipobj = IP()
+                    ipobj.Init(record.group(2), record.group(3), record.group(4), record.group(5), record.group(6))
+                    iptableobj.append(ipobj)
+                    """
                     StartIP = '%s.%s.%s.%s' % (record.group(2), record.group(3), record.group(4), record.group(5))
                     iptable = nic_class(
                             registry = nic,
@@ -229,6 +261,10 @@ class IPList():
                             value = int(record.group(6)));
                     iptableobj.append(iptable)
             db.put(iptableobj)
+                    """
+
+            # キャッシュ置き換え
+            replace_cache(nic, iptableobj)
 
             # ハッシュ更新
             if vresult:
@@ -323,6 +359,8 @@ class CronHandler(webapp.RequestHandler):
 
         # 最新のリストを取得
         list = IPList()
+        list.retrieve("AFRINIC")
+        """
         for nic in RIR.keys():
             logging.info('"%s" の更新を開始。' % nic)
             try:
@@ -330,7 +368,6 @@ class CronHandler(webapp.RequestHandler):
             except runtime.DeadlineExceededError:
                 logging.error('"%s"の取得に失敗' % nic)
 
-        """
         # リスト作成処理
         logging.info('%s形式でリストを作成します。' % options.type)
         logging.info('IPリストの出力開始。')
@@ -343,10 +380,10 @@ class CronHandler(webapp.RequestHandler):
 
 class MainHandler(webapp.RequestHandler):
     def get(self):
-        record = get_iptable()
+        record = get_cache("AFRINIC")
 
         template_values = {
-                'iptable': record
+                'iptable': record["AFRINIC"]
                 }
         path = os.path.join(os.path.dirname(__file__), 'main.html')
         self.response.out.write(template.render(path, template_values))
