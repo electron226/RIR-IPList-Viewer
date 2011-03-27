@@ -19,7 +19,7 @@ def add_cache(key, value = None, time = 0, key_prefix = '', min_compress_len = 0
                 logging.error("\n\t%s" % miss)
     else:
         if not memcache.add(key, value, time, min_compress_len, namespace):
-            logging.error("Memcache add %s Failure." % key)
+            logging.error("Memcache add '%s' Failure." % key)
 
 def set_cache(key, value = None, time = 0, key_prefix = '', min_compress_len = 0, namespace = None):
     if isinstance(key, list):
@@ -30,7 +30,7 @@ def set_cache(key, value = None, time = 0, key_prefix = '', min_compress_len = 0
                 logging.error("\n\t%s" % miss)
     else:
         if not memcache.set(key, value, time, min_compress_len, namespace):
-            logging.error("Memcache set %s Failure." % key)
+            logging.error("Memcache set '%s' Failure." % key)
 
 def replace_cache(key, value = None, time = 0, key_prefix = '', min_compress_len = 0, namespace = None):
     addflag = False
@@ -60,6 +60,6 @@ def delete_cache(key, seconds = 0, key_prefix = '', namespace = None):
     else:
         result = memcache.delete(key, seconds, namespace)
         if result == 0:
-            logging.error("Memcache delete %s Failure." % key)
+            logging.error("Memcache delete '%s' Failure." % key)
         elif result == 1:
-            logging.warning("Memcache delete %s Missing." % key)
+            logging.warning("Memcache delete '%s' Missing." % key)

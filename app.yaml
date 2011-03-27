@@ -7,7 +7,13 @@ handlers:
 - url: /cron
   script: main.py
   login: admin
+- url: /js
+  static_dir: js
 - url: /css
   static_dir: css
+- url: /datastore
+  script: main.py
+  login: admin
 - url: .*
   script: main.py
+  login: admin

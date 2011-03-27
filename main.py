@@ -3,11 +3,12 @@
 import sys
 import re
 import os
-import urllib2
-import shutil
+import time
 import hashlib
 import logging
 
+from google.appengine.api import taskqueue
+from google.appengine.api import urlfetch
 from google.appengine.ext import webapp
 from google.appengine.ext import db
 from google.appengine.ext.webapp import util
@@ -73,7 +74,19 @@ class LACNIC(IPTable): pass
 class AFRINIC(IPTable): pass
 
 def Clear(nic_class):
-    db.delete(nic_class.all())
+    try:
+        db.delete(nic_class.all())
+    except runtime.DeadlineExceededError:
+        ClearFor(nic_class)
+
+def ClearFor(nic_class):
+    table = nic_class.all()
+    while True:
+        records = table.fetch(1000)
+        if records:
+            db.delete(records)
+        else:
+            break
 
 def AllClear():
     Clear(ARIN)
@@ -99,16 +112,15 @@ class IPList():
     def retrieve(self, nic):
         nic_class = globals()[nic] # クラス名からクラスオブジェクトを取得
 
+        # urlfetchで接続
         url = RIR[nic]
-        try:
-            f = urllib2.urlopen(url)
-        except urllib2.URLError:
+        f = urlfetch.fetch(url, deadline = 300)
+        if f.status_code != 200:
             logging.error('エラー: "%s" が開けません。' % url)
             return False
+        contents = f.content.split('\n')
 
-        # 前回のハッシュ値と取得先のハッシュ値を比較
-        get = True
-        newhash = None
+        # 前回のハッシュを取得
         vtable = Version.all()
         vtable.filter('registry =', nic)
         vresult = vtable.fetch(1)
@@ -117,42 +129,43 @@ class IPList():
         else:
             oldhash = None
 
-        while True:
-            line = f.readline()
-            if not line:
-                break
+        # 前回のハッシュと今回のハッシュを比較
+        get = True
+        newhash = None
+        for line in contents:
             header = self.header_rule.match(line)
             if header:
                 newhash = hashlib.md5(header.group()).hexdigest()
                 if oldhash != None and oldhash == newhash:
                     get = False
-                    logging.info('既に最新版です。')
+                    logging.info('"%s"は既に最新版です。' % nic)
                 break
 
-        if get:
-            logging.info('ダウンロードを開始します。')
+        if not newhash:
+            logging.error('"%s"のヘッダが見つかりません。' % nic)
+            return False
 
-            if not newhash:
-                logging.error('取得先のIP割り当てファイルのヘッダが見つかりません。')
-                return False
+        if get:
+            logging.info('"%s"の更新を開始。' % nic)
 
             # 一致するリストを一度全て削除
-            # Clear(nic_class)
-            db.delete(nic_class.all())
+            Clear(nic_class)
 
-            # リストをデータベースに登録
+            # リストをデータストアに登録
             iptableobj = []
-            for line in f.readlines():
+            datastore_task = taskqueue.Queue('datastore')
+            for line in contents:
                 record = self.record_rule.search(line)
                 if record:
                     StartIP = '%s.%s.%s.%s' % (record.group(2), record.group(3), record.group(4), record.group(5))
-                    iptable = nic_class(
-                            registry = nic,
-                            cc = record.group(1),
-                            start = StartIP,
-                            value = int(record.group(6)));
-                    iptableobj.append(iptable)
-            db.put(iptableobj)
+                    # タスクキューで処理させる
+                    task = taskqueue.Task(url = '/datastore', params = {
+                        'registry': nic, 
+                        'cc': record.group(1), 
+                        'start': StartIP, 
+                        'value': record.group(5)
+                        })
+                    datastore_task.add(task)
 
             # ハッシュ更新
             if vresult:
@@ -164,17 +177,34 @@ class IPList():
                         hash = newhash);
             db.put(vtable)
 
-            logging.info('ダウンロードを完了。')
+            logging.info('"%s"の更新完了。' % nic)
             return True
 
         return False
+
+class DataStore(webapp.RequestHandler):
+    def post(self):
+        registry = self.request.get('registry')
+        cc = self.request.get('cc')
+        start = self.request.get('start')
+        value = self.request.get('value')
+
+        nic_class = globals()[registry]
+        ipobj = nic_class(
+                registry = registry, 
+                cc = cc, 
+                start = start, 
+                value = int(value))
+        ipobj.put()
 
 class CronHandler(webapp.RequestHandler):
     def get(self):
         # 最新のリストを取得
         list = IPList()
         for nic in RIR.keys():
-            logging.info('"%s" の更新を開始。' % nic)
+            if nic == 'APNIC' or nic == 'ARIN' or nic == 'RIPE':
+                continue
+
             try:
                 list.retrieve(nic)
             except runtime.DeadlineExceededError:
@@ -185,12 +215,18 @@ class CronHandler(webapp.RequestHandler):
 
 class MainHandler(webapp.RequestHandler):
     def get(self):
-        # クライアントのJavaScriptで処理をやればよくね？
-        # ファイルを保存 -> アクセスされる -> ダウンロードさせて処理
-        pass
+        template_values = {
+                'title': 'テスト用ページ'
+                }
+        path = os.path.join(os.path.dirname(__file__), 'main.html')
+        self.response.out.write(template.render(path, template_values))
 
 def main():
-    application = webapp.WSGIApplication([('/', MainHandler), ('/cron', CronHandler)], debug = True)
+    application = webapp.WSGIApplication([
+        ('/', MainHandler),
+        ('/cron', CronHandler),
+        ('/datastore', DataStore)],
+        debug = True)
     util.run_wsgi_app(application)
 
 ### Main ###
