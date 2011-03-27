@@ -1,4 +1,4 @@
-﻿#/usr/bin/python
+#/usr/bin/python
 # vim: set fileencoding=utf-8
 import sys
 import re
@@ -6,6 +6,9 @@ import os
 import time
 import hashlib
 import logging
+import zlib
+
+import memcache_extra
 
 from google.appengine.api import taskqueue
 from google.appengine.api import urlfetch
@@ -51,7 +54,7 @@ class IP:
     
     # 開始IPを文字列で返す
     def StartIP(self):
-        return self.__convert__(self.end - 1)
+        return self.__convert__(self.start)
 
     # 終了IPを文字列で返す
     def EndIP(self):
@@ -77,6 +80,7 @@ def Clear(nic_class):
     try:
         db.delete(nic_class.all())
     except runtime.DeadlineExceededError:
+        logging.error('Failed to Clear function. call to ClearFor fuction.')
         ClearFor(nic_class)
 
 def ClearFor(nic_class):
@@ -96,8 +100,51 @@ def AllClear():
     Clear(AFRINIC)
     Clear(Version)
 
+def CRC32Check(string):
+    return zlib.crc32(string) & 0xFFFFFFFF
+
 # IPリストをダウンロードするクラス
 class IPList():
+    # 取得したデータをzlib圧縮してmemcacheに保存
+    def handle_urlfetch(self, rpc, nic):
+        logging.info('Start "%s".' % nic)
+        try:
+            result = rpc.get_result()
+            if result.status_code != 200:
+                logging.error('Failed to open "%s".' % nic)
+            cache_data = {
+                    'data': zlib.compress(result.content), 
+                    'crc': CRC32Check(result.content)}
+            memcache_extra.replace_cache(nic, cache_data)
+        except urlfetch.DownloadError:
+            logging.error('Get "%s" failure.' % nic)
+
+    # コールバック関数
+    def create_callback(self, rpc, nic):
+        return lambda: self.handle_urlfetch(rpc, nic)
+    
+    # 与えたURLのIP割当ファイルの更新を確認し、取得してデータベースに登録
+    # nics : 更新するregistryの名前のリスト
+    def retrieve(self, nics):
+        # urlfetchで非同期接続
+        rpcs = []
+        for nic in nics:
+            rpc = urlfetch.create_rpc(deadline = 300)
+            rpc.callback = self.create_callback(rpc, nic)
+            urlfetch.make_fetch_call(rpc, RIR[nic]) #URLフェッチ開始
+            rpcs.append(rpc)
+
+        for rpc in rpcs:
+            rpc.wait() # 完了まで待機、コールバック関数を呼び出す
+
+        # タスクキューで処理させる
+        datastore_task = taskqueue.Queue('datastore')
+        for nic in nics:
+            task = taskqueue.Task(url = '/datastore', params = {'registry': nic})
+            datastore_task.add(task)
+        return
+
+class DataStore(webapp.RequestHandler):
     # ハッシュ値確認用
     header_rule = re.compile(r'\d{1}\|[a-z]+\|\d+\|\d+\|\d+\|\d+\|[+-]?\d+')
 
@@ -106,23 +153,24 @@ class IPList():
     #  G2  G3  G4  G5
     # G1 = 国コード, G6 = 範囲
     record_rule = re.compile(r'([A-Z]{2})\|ipv4\|(\d+).(\d+).(\d+).(\d+)\|(\d+)') # IPv4
-    
-    # 与えたURLのIP割当ファイルの更新を確認し、取得してデータベースに登録
-    # nic : 更新するregistryの名前
-    def retrieve(self, nic):
-        nic_class = globals()[nic] # クラス名からクラスオブジェクトを取得
 
-        # urlfetchで接続
-        url = RIR[nic]
-        f = urlfetch.fetch(url, deadline = 300)
-        if f.status_code != 200:
-            logging.error('エラー: "%s" が開けません。' % url)
+    def post(self):
+        registry = self.request.get('registry')
+        nic_class = globals()[registry]
+
+        cache = memcache_extra.get_cache(registry)[registry]
+        data = cache['data']
+        crc = cache['crc']
+        content = zlib.decompress(data)
+        if CRC32Check(content) != crc:
+            logging.error('memcache "%s" be damaged.' % registry)
             return False
-        contents = f.content.split('\n')
+
+        contents = content.split('\n')
 
         # 前回のハッシュを取得
         vtable = Version.all()
-        vtable.filter('registry =', nic)
+        vtable.filter('registry =', registry)
         vresult = vtable.fetch(1)
         if vresult:
             oldhash = vresult[0].hash
@@ -138,29 +186,28 @@ class IPList():
                 newhash = hashlib.md5(header.group()).hexdigest()
                 if oldhash != None and oldhash == newhash:
                     get = False
-                    logging.info('"%s"は既に最新版です。' % nic)
+                    logging.info('Already Latest Edition the "%s".' % registry)
                 break
 
         if not newhash:
-            logging.error('"%s"のヘッダが見つかりません。' % nic)
+            logging.error('Search the header of "%s".' % registry)
             return False
 
         if get:
-            logging.info('"%s"の更新を開始。' % nic)
+            logging.info('Start update the "%s".' % registry)
 
             # 一致するリストを一度全て削除
             Clear(nic_class)
 
             # リストをデータストアに登録
-            iptableobj = []
             datastore_task = taskqueue.Queue('datastore')
             for line in contents:
                 record = self.record_rule.search(line)
                 if record:
                     StartIP = '%s.%s.%s.%s' % (record.group(2), record.group(3), record.group(4), record.group(5))
                     # タスクキューで処理させる
-                    task = taskqueue.Task(url = '/datastore', params = {
-                        'registry': nic, 
+                    task = taskqueue.Task(url = '/datastore_put', params = {
+                        'registry': registry, 
                         'cc': record.group(1), 
                         'start': StartIP, 
                         'value': record.group(5)
@@ -173,16 +220,13 @@ class IPList():
                 vtable.hash = newhash
             else:
                 vtable = Version(
-                        registry = nic,
+                        registry = registry,
                         hash = newhash);
             db.put(vtable)
 
-            logging.info('"%s"の更新完了。' % nic)
-            return True
+            logging.info('Update complete the "%s".' % registry)
 
-        return False
-
-class DataStore(webapp.RequestHandler):
+class DataStorePut(webapp.RequestHandler):
     def post(self):
         registry = self.request.get('registry')
         cc = self.request.get('cc')
@@ -199,19 +243,14 @@ class DataStore(webapp.RequestHandler):
 
 class CronHandler(webapp.RequestHandler):
     def get(self):
-        # 最新のリストを取得
-        list = IPList()
-        for nic in RIR.keys():
-            if nic == 'APNIC' or nic == 'ARIN' or nic == 'RIPE':
-                continue
-
-            try:
-                list.retrieve(nic)
-            except runtime.DeadlineExceededError:
-                logging.error('"%s"の取得に失敗' % nic)
+        try:
+            list = IPList()
+            list.retrieve(RIR.keys())
+        except runtime.DeadlineExceededError:
+            logging.error('Get "%s" failure.' % nic)
 
         # 終了処理
-        logging.info('完了しました。')
+        logging.info('Complete.')
 
 class MainHandler(webapp.RequestHandler):
     def get(self):
@@ -225,7 +264,8 @@ def main():
     application = webapp.WSGIApplication([
         ('/', MainHandler),
         ('/cron', CronHandler),
-        ('/datastore', DataStore)],
+        ('/datastore', DataStore),
+        ('/datastore_put', DataStorePut)],
         debug = True)
     util.run_wsgi_app(application)
 
