@@ -129,7 +129,7 @@ class IPList():
         # urlfetchで非同期接続
         rpcs = []
         for nic in nics:
-            rpc = urlfetch.create_rpc(deadline = 300)
+            rpc = urlfetch.create_rpc(deadline = 60)
             rpc.callback = self.create_callback(rpc, nic)
             urlfetch.make_fetch_call(rpc, RIR[nic]) #URLフェッチ開始
             rpcs.append(rpc)
@@ -201,18 +201,23 @@ class DataStore(webapp.RequestHandler):
 
             # リストをデータストアに登録
             datastore_task = taskqueue.Queue('datastore')
+            records = ""
+            count = 0
             for line in contents:
                 record = self.record_rule.search(line)
                 if record:
                     StartIP = '%s.%s.%s.%s' % (record.group(2), record.group(3), record.group(4), record.group(5))
-                    # タスクキューで処理させる
-                    task = taskqueue.Task(url = '/datastore_put', params = {
-                        'registry': registry, 
-                        'cc': record.group(1), 
-                        'start': StartIP, 
-                        'value': record.group(5)
-                        })
-                    datastore_task.add(task)
+                    records += "%s %s %s %s " % (registry, record.group(1), StartIP, record.group(6))
+                    count += 1
+                    # 一定量たまったらタスクキューで処理
+                    if count > 150:
+                        task = taskqueue.Task(url = '/datastore_put', params = {'records': records})
+                        datastore_task.add(task)
+                        records = ""
+                        count = 0
+            # 残った分をタスクキューで処理
+            task = taskqueue.Task(url = '/datastore_put', params = {'records': records})
+            datastore_task.add(task)
 
             # ハッシュ更新
             if vresult:
@@ -228,18 +233,22 @@ class DataStore(webapp.RequestHandler):
 
 class DataStorePut(webapp.RequestHandler):
     def post(self):
-        registry = self.request.get('registry')
-        cc = self.request.get('cc')
-        start = self.request.get('start')
-        value = self.request.get('value')
+        records = self.request.get('records').rstrip()
+        recordlist = records.split()
+        recordcount = len(recordlist)
+        if recordcount == 0:
+            return False
 
-        nic_class = globals()[registry]
-        ipobj = nic_class(
-                registry = registry, 
-                cc = cc, 
-                start = start, 
-                value = int(value))
-        ipobj.put()
+        count = 0
+        while count < recordcount:
+            nic_class = globals()[recordlist[0]]
+            ipobj = nic_class(
+                    registry = recordlist[0], 
+                    cc = recordlist[1], 
+                    start = recordlist[2], 
+                    value = int(recordlist[3]))
+            ipobj.put()
+            count += 4
 
 class CronHandler(webapp.RequestHandler):
     def get(self):
