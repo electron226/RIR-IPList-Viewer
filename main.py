@@ -24,6 +24,10 @@ try:
 except ImportError:
     _apphosting_runtime__python__apiproxy = None
 
+# 設定
+program_title = "RIR List Viewer"
+program_version = "1.0"
+
 # 取得先
 RIR = {
         'ARIN':'http://ftp.apnic.net/stats/arin/delegated-arin-latest',
@@ -76,14 +80,11 @@ class RIPE(IPTable): pass
 class LACNIC(IPTable): pass
 class AFRINIC(IPTable): pass
 
-def Clear(nic_class):
-    try:
-        db.delete(nic_class.all())
-    except runtime.DeadlineExceededError:
-        logging.error('Failed to Clear function. call to ClearFor fuction.')
-        ClearFor(nic_class)
+class Countries(db.Model):
+    cc = db.StringProperty()
+    registry = db.StringProperty()
 
-def ClearFor(nic_class):
+def Clear(nic_class):
     table = nic_class.all()
     while True:
         records = table.fetch(1000)
@@ -112,12 +113,15 @@ class IPList():
             result = rpc.get_result()
             if result.status_code != 200:
                 logging.error('Failed to open "%s".' % nic)
+                return False
             cache_data = {
                     'data': zlib.compress(result.content), 
                     'crc': CRC32Check(result.content)}
             memcache_extra.replace_cache(nic, cache_data)
         except urlfetch.DownloadError:
             logging.error('Get "%s" failure.' % nic)
+        except zlib.error:
+            logging.error('Get "%s" failure. zlib Compress Error.' % nic)
 
     # コールバック関数
     def create_callback(self, rpc, nic):
@@ -158,12 +162,18 @@ class DataStore(webapp.RequestHandler):
         registry = self.request.get('registry')
         nic_class = globals()[registry]
 
-        cache = memcache_extra.get_cache(registry)[registry]
-        data = cache['data']
-        crc = cache['crc']
-        content = zlib.decompress(data)
-        if CRC32Check(content) != crc:
-            logging.error('memcache "%s" be damaged.' % registry)
+        try:
+            cache = memcache_extra.get_cache(registry)[registry]
+            data = cache['data']
+            crc = cache['crc']
+            content = zlib.decompress(data)
+            if CRC32Check(content) != crc:
+                logging.error('memcache "%s" be damaged.' % registry)
+                return False
+        except TypeError, te:
+            logging.error(te)
+        except zlib.error:
+            logging.error('zlib Decompress Error.' % registry)
             return False
 
         contents = content.split('\n')
@@ -202,12 +212,14 @@ class DataStore(webapp.RequestHandler):
             # リストをデータストアに登録
             datastore_task = taskqueue.Queue('datastore')
             records = ""
+            countries = set() # 国名リスト 
             count = 0
             for line in contents:
                 record = self.record_rule.search(line)
                 if record:
                     StartIP = '%s.%s.%s.%s' % (record.group(2), record.group(3), record.group(4), record.group(5))
                     records += "%s %s %s %s " % (registry, record.group(1), StartIP, record.group(6))
+                    countries.add(record.group(1))
                     count += 1
                     # 一定量たまったらタスクキューで処理
                     if count > 150:
@@ -218,6 +230,13 @@ class DataStore(webapp.RequestHandler):
             # 残った分をタスクキューで処理
             task = taskqueue.Task(url = '/datastore_put', params = {'records': records})
             datastore_task.add(task)
+
+            # 国名をデータストアに保存
+            ctablelist = []
+            for country in countries:
+                ctable = Countries(cc = country, registry = registry)
+                ctablelist.append(ctable)
+            db.put(ctablelist)
 
             # ハッシュ更新
             if vresult:
@@ -259,12 +278,14 @@ class CronHandler(webapp.RequestHandler):
             logging.error('Get "%s" failure.' % nic)
 
         # 終了処理
-        logging.info('Complete.')
+        logging.info('List Update Complete.')
 
 class MainHandler(webapp.RequestHandler):
     def get(self):
+        pass
         template_values = {
-                'title': 'テスト用ページ'
+                'title': program_title,
+                'version': program_version
                 }
         path = os.path.join(os.path.dirname(__file__), 'main.html')
         self.response.out.write(template.render(path, template_values))

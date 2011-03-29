@@ -7,24 +7,46 @@
 <meta http-equiv="Content-Script-Type" content="text/javascript" />
 <meta http-equiv="Content-Stype-Type" content="text/css" />
 <link rel="stylesheet" href="css/main.css" />
-<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script><!-- IEをHTML5に対応させる -->
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
 <script type="text/javascript" src="js/main.js"></script>
+
+<script type="text/javascript">
+$(document).ready(function(){
+	$("ul#navigation li a").click(function() {
+		$("ul#navigation li").removeClass("selected");
+		$(this).parents().addClass("selected");
+		return false;
+	});
+});
+</script>
 </head>
+
 <body>
+
+<header>
+<div id="title">{{ title }}</div>
+<div id="version">ver&nbsp;{{ version }}</div>
+
+<ul id="navigation">
+	<li class="top"><a href="#">TOP</a></li>
+	<li class="Database"><a href="#">Database</a></li>
+	<li class="Configured"><a href="#">Configured</a></li>
+	<li class="shadow"></li>
+</ul>
+</header>
+
+<section>
+<article>
 <button id="open">表示</button>
 <button id="close">削除</button>
 <div id="view"></div>
-<!--
-{% for record in iptable %}
-<table>
-	<tr>
-		<td>{{ record.registry|escape }}</td>
-		<td>{{ record.cc|escape }}</td>
-		<td>{{ record.start|escape }}</td>
-		<td>{{ record.value|escape }}</td>
-	</tr>
-</table>
-{% endfor %}
--->
+</article>
+</section>
+
+<footer>
+<p>まだまだ構成中。</p>
+</footer>
+
 </body>
 </html>
