@@ -184,9 +184,9 @@ class DataStore(webapp.RequestHandler):
         # 前回のハッシュを取得
         vtable = Version.all()
         vtable.filter('registry =', registry)
-        vresult = vtable.fetch(1)
+        vresult = vtable.get()
         if vresult:
-            oldhash = vresult[0].hash
+            oldhash = vresult.hash
         else:
             oldhash = None
 
@@ -231,8 +231,9 @@ class DataStore(webapp.RequestHandler):
                         records = ""
                         count = 0
             # 残った分をタスクキューで処理
-            task = taskqueue.Task(url = '/datastore_put', params = {'records': records})
-            datastore_task.add(task)
+            if len(records) != 0:
+                task = taskqueue.Task(url = '/datastore_put', params = {'records': records})
+                datastore_task.add(task)
 
             # 国名をデータストアに保存
             ctablelist = []
@@ -243,13 +244,12 @@ class DataStore(webapp.RequestHandler):
 
             # ハッシュ更新
             if vresult:
-                vtable = vresult[0]
-                vtable.hash = newhash
+                vresult.hash = newhash
             else:
-                vtable = Version(
+                vresult = Version(
                         registry = registry,
-                        hash = newhash);
-            db.put(vtable)
+                        hash = newhash)
+            vresult.put()
 
             logging.info('Update complete the "%s".' % registry)
 
