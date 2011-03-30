@@ -85,7 +85,11 @@ class Countries(db.Model):
     registry = db.StringProperty()
 
 def Clear(nic_class):
-    db.delete(nic_class.all())
+    try:
+        db.delete(nic_class.all())
+    except runtime.DeadlineExceededError:
+        logging.error('Failed to Clear function. call to ClearFor fuction.')
+        ClearFor(nic_class)
 
 def ClearFor(nic_class):
     table = nic_class.all()
