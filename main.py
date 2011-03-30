@@ -85,6 +85,9 @@ class Countries(db.Model):
     registry = db.StringProperty()
 
 def Clear(nic_class):
+    db.delete(nic_class.all())
+
+def ClearFor(nic_class):
     table = nic_class.all()
     while True:
         records = table.fetch(1000)
@@ -94,12 +97,12 @@ def Clear(nic_class):
             break
 
 def AllClear():
-    Clear(ARIN)
-    Clear(APNIC)
-    Clear(RIPE)
-    Clear(LACNIC)
-    Clear(AFRINIC)
-    Clear(Version)
+    ClearFor(ARIN)
+    ClearFor(APNIC)
+    ClearFor(RIPE)
+    ClearFor(LACNIC)
+    ClearFor(AFRINIC)
+    ClearFor(Version)
 
 def CRC32Check(string):
     return zlib.crc32(string) & 0xFFFFFFFF
@@ -260,12 +263,12 @@ class DataStorePut(webapp.RequestHandler):
 
         count = 0
         while count < recordcount:
-            nic_class = globals()[recordlist[0]]
+            nic_class = globals()[recordlist[count]]
             ipobj = nic_class(
-                    registry = recordlist[0], 
-                    cc = recordlist[1], 
-                    start = recordlist[2], 
-                    value = int(recordlist[3]))
+                    registry = recordlist[count], 
+                    cc = recordlist[count + 1], 
+                    start = recordlist[count + 2], 
+                    value = int(recordlist[count + 3]))
             ipobj.put()
             count += 4
 
@@ -281,8 +284,13 @@ class CronHandler(webapp.RequestHandler):
         logging.info('List Update Complete.')
 
 class MainHandler(webapp.RequestHandler):
+    # レコード用
+    # xxx.xxx.xxx.xxx
+    #  G2  G3  G4  G5
+    # G1 = 国コード, G6 = 範囲
+    record_rule = re.compile(r'([A-Z]{2})\|ipv4\|(\d+).(\d+).(\d+).(\d+)\|(\d+)') # IPv4
+
     def get(self):
-        pass
         template_values = {
                 'title': program_title,
                 'version': program_version
