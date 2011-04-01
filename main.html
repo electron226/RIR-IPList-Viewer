@@ -16,6 +16,9 @@
 $(document).ready(function(){
 	$(".tabs li a").click(function() {
 		$(".tabs li").removeClass("selected");
+		$(".tabs li").addClass("noselected");
+
+		$(this).parents().removeClass("noselected");
 		$(this).parents().addClass("selected");
 		return false;
 	});
@@ -30,9 +33,9 @@ $(document).ready(function(){
 <div id="version">ver&nbsp;{{ version }}</div>
 
 <ul class="tabs">
-	<li><a href="#top">TOP</a></li>
-	<li><a href="#database">Database</a></li>
-	<li><a href="#configured">Configured</a></li>
+	<li class="selected"><a href="#top">TOP</a></li>
+	<li class="noselected"><a href="#database">Database</a></li>
+	<li class="noselected"><a href="#configured">Configured</a></li>
 </ul>
 </header>
 

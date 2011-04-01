@@ -89,15 +89,20 @@ div#view {
 	z-index: 3;
 }
 
-.tabs a:hover {
+.tabs li a:hover {
 	width: 100%;
 	height: 2px;
 	position: relative;
-	bottom: 1px;
 	left: 0px;
 	border: none;
 	background: none;
 	z-index: 2;
+}
+
+.tabs li.noselected a:hover {
+	bottom: 1px;
+	background-color: #5a87dd;
+
 	-webkit-box-shadow: #111 0 -2px 6px;
 	-moz-box-shadow: #111 0 -2px 6px;
 	box-shadow: #111 0 -2px 6px;
@@ -127,10 +132,6 @@ div#view {
 	outline: none;
 	float: left;
 	background: #2B477D;
-}
-
-.tabs li a:hover {
-	background-color: #5a87dd;
 }
 
 .tabs li.selected a:link, .tabs li.selected a:visited {
