@@ -1,5 +1,5 @@
 application: 8risky
-version: 1
+version: 2
 runtime: python
 api_version: 1
 
@@ -12,9 +12,6 @@ handlers:
 - url: /css
   static_dir: css
 - url: /datastore
-  script: main.py
-  login: admin
-- url: /datastore_put
   script: main.py
   login: admin
 - url: .*

@@ -48,7 +48,8 @@ class IP:
     # value : 割当数
     def __init__(self, ip1, ip2, ip3, ip4, value):
         self.start = (int(ip1) << 24) + (int(ip2) << 16) + (int(ip3) << 8) + int(ip4)
-        self.end = self.start + int(value)
+        self.value = int(value)
+        self.end = self.start + self.value 
 
     # 与えられた値をIPに変換
     def __convert__(self, value):
@@ -63,49 +64,22 @@ class IP:
     def EndIP(self):
         return self.__convert__(self.end - 1)
 
-class Version(db.Model):
-    registry = db.StringProperty()
-    hash = db.StringProperty()
+class IPTable():
+    def __init__(self, registry, cc, ip):
+        self.registry = registry
+        self.cc = cc
+        self.ip = ip
 
-class IPTable(db.Model):
-    registry = db.StringProperty()
-    cc = db.StringProperty()
-    start = db.StringProperty()
-    value = db.IntegerProperty()
+class Countries():
+    def __init__(self, cc, registry):
+        self.cc = cc
+        self.registry = registry
 
-class ARIN(IPTable): pass
-class APNIC(IPTable): pass
-class RIPE(IPTable): pass
-class LACNIC(IPTable): pass
-class AFRINIC(IPTable): pass
-
-class Countries(db.Model):
-    cc = db.StringProperty()
-    registry = db.StringProperty()
-
-def Clear(nic_class):
-    try:
-        db.delete(nic_class.all())
-    except runtime.DeadlineExceededError:
-        logging.error('Failed to Clear function. call to ClearFor fuction.')
-        ClearFor(nic_class)
-
-def ClearFor(nic_class):
-    table = nic_class.all()
+def Clear(registry, count = 0):
     while True:
-        records = table.fetch(1000)
-        if records:
-            db.delete(records)
-        else:
+        result = memcache.delete('%s_%d' % (registry, count))
+        if result != 2:
             break
-
-def AllClear():
-    ClearFor(ARIN)
-    ClearFor(APNIC)
-    ClearFor(RIPE)
-    ClearFor(LACNIC)
-    ClearFor(AFRINIC)
-    ClearFor(Version)
 
 def CRC32Check(string):
     return zlib.crc32(string) & 0xFFFFFFFF
@@ -120,10 +94,12 @@ class IPList():
             if result.status_code != 200:
                 logging.error('Failed to open "%s".' % nic)
                 return False
+
             cache_data = {
                     'data': zlib.compress(result.content), 
                     'crc': CRC32Check(result.content)}
-            memcache.set(nic, cache_data)
+            if not memcache.set(nic, cache_data):
+                logging.error('Set memcache, %s content failure.' % nic)
         except urlfetch.DownloadError:
             logging.error('Get "%s" failure.' % nic)
         except zlib.error:
@@ -166,7 +142,6 @@ class DataStore(webapp.RequestHandler):
 
     def post(self):
         registry = self.request.get('registry')
-        nic_class = globals()[registry]
 
         try:
             cache = memcache.get(registry)
@@ -189,13 +164,11 @@ class DataStore(webapp.RequestHandler):
             return False
 
         # 前回のハッシュを取得
-        vtable = Version.all()
-        vtable.filter('registry =', registry)
-        vresult = vtable.get()
-        if vresult:
-            oldhash = vresult.hash
+        oldhash = memcache.get('%s_hash' % registry)
+        if oldhash:
+            logging.info('Get %s_hash Successs.' % registry)
         else:
-            oldhash = None
+            logging.info('Get %s_hash Failure.' % registry)
 
         # 前回のハッシュと今回のハッシュを比較
         get = True
@@ -216,68 +189,51 @@ class DataStore(webapp.RequestHandler):
         if get:
             logging.info('Start update the "%s".' % registry)
 
-            # 一致するリストを一度全て削除
-            Clear(nic_class)
+            # 一致するレジストリのキャッシュを削除
+            Clear(registry)
 
-            # リストをデータストアに登録
-            datastore_task = taskqueue.Queue('datastore')
-            records = ""
-            countries = set() # 国名リスト 
+            # 取得したリストをキャッシュに保存
             count = 0
+            cache_count = 0
+            countries = set() # 国名リスト 
+            iplist = []
             for line in contents:
                 record = self.record_rule.search(line)
                 if record:
-                    StartIP = '%s.%s.%s.%s' % (record.group(2), record.group(3), record.group(4), record.group(5))
-                    records += "%s %s %s %s " % (registry, record.group(1), StartIP, record.group(6))
+                    ipobj = IP(record.group(2), record.group(3), record.group(4), record.group(5), record.group(6))
+                    ip = IPTable(registry, record.group(1), ipobj)
+                    iplist.append(ip)
+
                     countries.add(record.group(1))
                     count += 1
-                    # 一定量たまったらタスクキューで処理
-                    if count > 150:
-                        task = taskqueue.Task(url = '/datastore_put', params = {'records': records})
-                        datastore_task.add(task)
-                        records = ""
+                    # 一定量たまったらキャッシュに保存
+                    if count > 1000:
+                        if not memcache.set('%s_%d' % (registry, cache_count), iplist):
+                            logging.error('Set recordlist failure. "%s_%d"' % (registry, cache_count))
+                        else:
+                            cache_count += 1
+                        iplist = []
                         count = 0
-            # 残った分をタスクキューで処理
-            if len(records) != 0:
-                task = taskqueue.Task(url = '/datastore_put', params = {'records': records})
-                datastore_task.add(task)
+            # 残った分をキャッシュに保存
+            if len(iplist) != 0:
+                if not memcache.set('%s_%d' % (registry, cache_count), iplist):
+                    logging.error('Set iplist failure. "%s_%d"' % (registry, cache_count))
 
-            # 国名をデータストアに保存
+            # 国名リストをキャッシュに保存
             ctablelist = []
             for country in countries:
                 ctable = Countries(cc = country, registry = registry)
                 ctablelist.append(ctable)
-            db.put(ctablelist)
+            if not memcache.set('%s_countries' % registry, ctablelist):
+                logging.error('Set ctablelist failure. "%s_countries"' % registry)
 
             # ハッシュ更新
-            if vresult:
-                vresult.hash = newhash
+            if memcache.set('%s_hash' % registry, newhash):
+                logging.error('Set %s_hash Success.' % registry)
             else:
-                vresult = Version(
-                        registry = registry,
-                        hash = newhash)
-            vresult.put()
+                logging.error('Set %s_hash Failure.' % registry)
 
             logging.info('Update complete the "%s".' % registry)
-
-class DataStorePut(webapp.RequestHandler):
-    def post(self):
-        records = self.request.get('records').rstrip()
-        recordlist = records.split()
-        recordcount = len(recordlist)
-        if recordcount == 0:
-            return False
-
-        count = 0
-        while count < recordcount:
-            nic_class = globals()[recordlist[count]]
-            ipobj = nic_class(
-                    registry = recordlist[count], 
-                    cc = recordlist[count + 1], 
-                    start = recordlist[count + 2], 
-                    value = int(recordlist[count + 3]))
-            ipobj.put()
-            count += 4
 
 class CronHandler(webapp.RequestHandler):
     def get(self):
@@ -287,16 +243,25 @@ class CronHandler(webapp.RequestHandler):
         except runtime.DeadlineExceededError:
             logging.error('Get "%s" failure.' % nic)
 
+        """
+        count = 0
+        line = 0
+        registry = 'AFRINIC'
+        while True:
+            cache = memcache.get('%s_%d' % (registry, count))
+            if not cache:
+                break
+
+            for ipobj in cache:
+                self.response.out.write('%s:\t%s<br />' % (line, ipobj.ip.StartIP()))
+                line += 1
+            count += 1
+        """
+
         # 終了処理
         logging.info('List Update Complete.')
 
 class MainHandler(webapp.RequestHandler):
-    # レコード用
-    # xxx.xxx.xxx.xxx
-    #  G2  G3  G4  G5
-    # G1 = 国コード, G6 = 範囲
-    record_rule = re.compile(r'([A-Z]{2})\|ipv4\|(\d+).(\d+).(\d+).(\d+)\|(\d+)') # IPv4
-
     def get(self):
         template_values = {
                 'title': program_title,
@@ -309,8 +274,7 @@ def main():
     application = webapp.WSGIApplication([
         ('/', MainHandler),
         ('/cron', CronHandler),
-        ('/datastore', DataStore),
-        ('/datastore_put', DataStorePut)],
+        ('/datastore', DataStore)],
         debug = True)
     util.run_wsgi_app(application)
 

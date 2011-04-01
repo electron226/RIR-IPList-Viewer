@@ -1,4 +1,4 @@
 queue:
 - name: datastore
-  rate: 100.00/s
-  bucket_size: 100
+  rate: 10.00/s
+  bucket_size: 10
