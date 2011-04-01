@@ -25,7 +25,7 @@ except ImportError:
 
 # 設定
 program_title = "RIR List Viewer"
-program_version = "1.0"
+program_version = "1.1"
 
 # 取得先
 RIR = {
@@ -81,43 +81,47 @@ def Clear(registry, count = 0):
         if result != 2:
             break
 
+def ClearAll():
+    if not memcache.flush_all():
+        logging.error('memcache flush_all failure.')
+
 def CRC32Check(string):
     return zlib.crc32(string) & 0xFFFFFFFF
 
 # IPリストをダウンロードするクラス
 class IPList():
     # 取得したデータをzlib圧縮してmemcacheに保存
-    def handle_urlfetch(self, rpc, nic):
-        logging.info('Start "%s".' % nic)
+    def handle_urlfetch(self, rpc, registry):
+        logging.info('Start "%s".' % registry)
         try:
             result = rpc.get_result()
             if result.status_code != 200:
-                logging.error('Failed to open "%s".' % nic)
+                logging.error('Failed to open "%s".' % registry)
                 return False
 
             cache_data = {
                     'data': zlib.compress(result.content), 
                     'crc': CRC32Check(result.content)}
-            if not memcache.set(nic, cache_data):
-                logging.error('Set memcache, %s content failure.' % nic)
+            if not memcache.set(registry, cache_data):
+                logging.error('Set memcache, %s content failure.' % registry)
         except urlfetch.DownloadError:
-            logging.error('Get "%s" failure.' % nic)
+            logging.error('Get "%s" failure.' % registry)
         except zlib.error:
-            logging.error('Get "%s" failure. zlib Compress Error.' % nic)
+            logging.error('Get "%s" failure. zlib Compress Error.' % registry)
 
     # コールバック関数
-    def create_callback(self, rpc, nic):
-        return lambda: self.handle_urlfetch(rpc, nic)
+    def create_callback(self, rpc, registry):
+        return lambda: self.handle_urlfetch(rpc, registry)
     
     # 与えたURLのIP割当ファイルの更新を確認し、取得してデータベースに登録
-    # nics : 更新するregistryの名前のリスト
-    def retrieve(self, nics):
+    # registrys : 更新するregistryの名前のリスト
+    def retrieve(self, registrys):
         # urlfetchで非同期接続
         rpcs = []
-        for nic in nics:
-            rpc = urlfetch.create_rpc(deadline = 60)
-            rpc.callback = self.create_callback(rpc, nic)
-            urlfetch.make_fetch_call(rpc, RIR[nic]) #URLフェッチ開始
+        for registry in registrys:
+            rpc = urlfetch.create_rpc(deadline = 30)
+            rpc.callback = self.create_callback(rpc, registry)
+            urlfetch.make_fetch_call(rpc, RIR[registry]) #URLフェッチ開始
             rpcs.append(rpc)
 
         for rpc in rpcs:
@@ -125,8 +129,8 @@ class IPList():
 
         # タスクキューで処理させる
         datastore_task = taskqueue.Queue('datastore')
-        for nic in nics:
-            task = taskqueue.Task(url = '/datastore', params = {'registry': nic})
+        for registry in registrys:
+            task = taskqueue.Task(url = '/datastore', params = {'registry': registry})
             datastore_task.add(task)
         return
 
@@ -164,7 +168,7 @@ class DataStore(webapp.RequestHandler):
             return False
 
         # 前回のハッシュを取得
-        oldhash = memcache.get('%s_hash' % registry)
+        oldhash = memcache.get('%s_HASH' % registry)
         if oldhash:
             logging.info('Get %s_hash Successs.' % registry)
         else:
@@ -193,42 +197,45 @@ class DataStore(webapp.RequestHandler):
             Clear(registry)
 
             # 取得したリストをキャッシュに保存
-            count = 0
-            cache_count = 0
             countries = set() # 国名リスト 
             iplist = []
             for line in contents:
                 record = self.record_rule.search(line)
                 if record:
                     ipobj = IP(record.group(2), record.group(3), record.group(4), record.group(5), record.group(6))
-                    ip = IPTable(registry, record.group(1), ipobj)
+                    ip = IPTable(registry = registry, cc = record.group(1), ip = ipobj)
                     iplist.append(ip)
-
                     countries.add(record.group(1))
-                    count += 1
-                    # 一定量たまったらキャッシュに保存
-                    if count > 1000:
-                        if not memcache.set('%s_%d' % (registry, cache_count), iplist):
-                            logging.error('Set recordlist failure. "%s_%d"' % (registry, cache_count))
-                        else:
-                            cache_count += 1
-                        iplist = []
-                        count = 0
-            # 残った分をキャッシュに保存
-            if len(iplist) != 0:
-                if not memcache.set('%s_%d' % (registry, cache_count), iplist):
-                    logging.error('Set iplist failure. "%s_%d"' % (registry, cache_count))
+            iplist.sort(lambda x, y: cmp(x.cc, y.cc)) # 国ごとにソート
+
+            # 一定数ごとにキャッシュに保存
+            split_count = (2000)
+            list_count = len(iplist) / split_count
+            if list_count > 1:
+                for i in xrange(list_count):
+                    if not memcache.set('%s_%d' % (registry, i), iplist[i * split_count : (i + 1) * split_count]):
+                        logging.error('Set iplist failure. "%s_%d"' % (registry, cache_count))
+                        return False
+
+                # 残った分をキャッシュに保存
+                if not memcache.set('%s_%d' % (registry, list_count), iplist[list_count * split_count:]):
+                    logging.error('Set iplist failure. "%s_%d"' % (registry, list_count))
+                    return False
+            else:
+                # 全てキャッシュに追加
+                if not memcache.set('%s_%d' % (registry, 0), iplist):
+                    logging.error('Set iplist failure. "%s_%d"' % (registry, 0))
 
             # 国名リストをキャッシュに保存
             ctablelist = []
             for country in countries:
                 ctable = Countries(cc = country, registry = registry)
                 ctablelist.append(ctable)
-            if not memcache.set('%s_countries' % registry, ctablelist):
+            if not memcache.set('%s_COUNTRIES' % registry, ctablelist):
                 logging.error('Set ctablelist failure. "%s_countries"' % registry)
 
             # ハッシュ更新
-            if memcache.set('%s_hash' % registry, newhash):
+            if memcache.set('%s_HASH' % registry, newhash):
                 logging.error('Set %s_hash Success.' % registry)
             else:
                 logging.error('Set %s_hash Failure.' % registry)
@@ -237,29 +244,25 @@ class DataStore(webapp.RequestHandler):
 
 class CronHandler(webapp.RequestHandler):
     def get(self):
-        try:
-            list = IPList()
-            list.retrieve(RIR.keys())
-        except runtime.DeadlineExceededError:
-            logging.error('Get "%s" failure.' % nic)
+        list = IPList()
+        list.retrieve(RIR.keys())
 
-        """
-        count = 0
-        line = 0
-        registry = 'AFRINIC'
-        while True:
-            cache = memcache.get('%s_%d' % (registry, count))
-            if not cache:
-                break
+class ViewHandler(webapp.RequestHandler):
+    def get(self):
+        for registry in RIR.keys():
+            count = 0
+            line = 0
+            self.response.out.write('<strong>%s</strong><br />' % registry)
+            while True:
+                cache = memcache.get('%s_%d' % (registry, count))
+                if not cache:
+                    break
 
-            for ipobj in cache:
-                self.response.out.write('%s:\t%s<br />' % (line, ipobj.ip.StartIP()))
-                line += 1
-            count += 1
-        """
-
-        # 終了処理
-        logging.info('List Update Complete.')
+                for ipobj in cache:
+                    self.response.out.write('%d:\t%s\t%d\t%s<br />' % (line, ipobj.ip.StartIP(), ipobj.ip.value, ipobj.cc))
+                    line += 1
+                count += 1
+            self.response.out.write('<br />')
 
 class MainHandler(webapp.RequestHandler):
     def get(self):
@@ -274,6 +277,7 @@ def main():
     application = webapp.WSGIApplication([
         ('/', MainHandler),
         ('/cron', CronHandler),
+        ('/view', ViewHandler),
         ('/datastore', DataStore)],
         debug = True)
     util.run_wsgi_app(application)
