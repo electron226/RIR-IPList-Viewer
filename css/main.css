@@ -46,10 +46,21 @@ body {
 	background-color: #E4E4E4;
 }
 
-ul {
-	list-style: none;
+div#title {
+	font-size: 32px;
 }
-ul#navigation {
+div#version {
+	font-size: 16px;
+}
+div#view {
+	width: 200px;
+	height: 200px;
+	background: #8E8E8E;
+	display: none;
+}
+
+.tabs {
+	list-style: none;
 	height: 36px;
 	padding: 20px 20px 0 30px;
 	width: 805px;
@@ -60,10 +71,11 @@ ul#navigation {
 	left: -20px;
 }
 
-ul#navigation li {
+.tabs li {
 	-webkit-border-radius: 6px;
 	-moz-border-radius: 6px;
 	border-radius: 6px;
+
 	float: left;
 	width: 168px;
 	margin: 0 10px 0 0;
@@ -73,16 +85,16 @@ ul#navigation li {
 	z-index: 1;
 }
 
-ul#navigation li.selected {
+.tabs a:active {
 	z-index: 3;
 }
 
-ul#navigation li.shadow {
+.tabs a:hover {
 	width: 100%;
 	height: 2px;
-	position: absolute;
-	bottom: -3px;
-	left: 0;
+	position: relative;
+	bottom: 1px;
+	left: 0px;
 	border: none;
 	background: none;
 	z-index: 2;
@@ -91,10 +103,15 @@ ul#navigation li.shadow {
 	box-shadow: #111 0 -2px 6px;
 }
 
-ul#navigation li a:link, ul#navigation li a:visited {
+.tabs li a:link, .tabs li a:visited {
 	-webkit-border-radius: 6px;
 	-moz-border-radius: 6px;
 	border-radius: 6px;
+	-webkit-transition: background-color 0.3s linear;
+	-moz-transition: background-color 0.3s linear;
+	-o-transition: background-color 0.3s linear;
+	transition: background-color 0.3s linear;
+
 	display: block;
 	text-align: center;
 	width: 168px;
@@ -110,33 +127,16 @@ ul#navigation li a:link, ul#navigation li a:visited {
 	outline: none;
 	float: left;
 	background: #2B477D;
-	-webkit-transition: background-color 0.3s linear;
-	-moz-transition: background-color 0.3s linear;
-	-o-transition: background-color 0.3s linear;
 }
 
-ul#navigation li a:hover {
+.tabs li a:hover {
 	background-color: #5a87dd;
 }
 
-ul#navigation li.selected a:link, ul#navigation li.selected a:visited {
+.tabs li.selected a:link, .tabs li.selected a:visited {
 	color: #2B477D;
 	border: solid 1px #fff;
-	-webkit-transition: background-color 0.2s linear;
 	background: -moz-linear-gradient(top center, #d1d1d1, #f2f2f2 80%) repeat scroll 0 0 #f2f2f2;
 	background: -webkit-gradient(linear,left bottom,left top,color-stop(.2, #f2f2f2),color-stop(.8, #d1d1d1));
 	background-color: #f2f2f2;
-}
-
-div#title {
-	font-size: 32px;
-}
-div#version {
-	font-size: 16px;
-}
-div#view {
-	width: 200px;
-	height: 200px;
-	background: #8E8E8E;
-	display: none;
 }
