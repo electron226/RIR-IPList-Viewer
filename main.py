@@ -8,10 +8,9 @@ import hashlib
 import logging
 import zlib
 
-import memcache_extra
-
 from google.appengine.api import taskqueue
 from google.appengine.api import urlfetch
+from google.appengine.api import memcache
 from google.appengine.ext import webapp
 from google.appengine.ext import db
 from google.appengine.ext.webapp import util
@@ -124,7 +123,7 @@ class IPList():
             cache_data = {
                     'data': zlib.compress(result.content), 
                     'crc': CRC32Check(result.content)}
-            memcache_extra.replace_cache(nic, cache_data)
+            memcache.set(nic, cache_data)
         except urlfetch.DownloadError:
             logging.error('Get "%s" failure.' % nic)
         except zlib.error:
@@ -170,7 +169,7 @@ class DataStore(webapp.RequestHandler):
         nic_class = globals()[registry]
 
         try:
-            cache = memcache_extra.get_cache(registry)[registry]
+            cache = memcache.get(registry)
             data = cache['data']
             crc = cache['crc']
             content = zlib.decompress(data)
@@ -183,7 +182,11 @@ class DataStore(webapp.RequestHandler):
             logging.error('zlib Decompress Error.' % registry)
             return False
 
-        contents = content.split('\n')
+        try:
+            contents = content.split('\n')
+        except UnboundLocalError, ule:
+            logging.error('%s' % ule)
+            return False
 
         # 前回のハッシュを取得
         vtable = Version.all()
