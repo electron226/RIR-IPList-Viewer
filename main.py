@@ -209,7 +209,7 @@ class DataStore(webapp.RequestHandler):
             iplist.sort(lambda x, y: cmp(x.cc, y.cc)) # 国ごとにソート
 
             # 一定数ごとにキャッシュに保存
-            split_count = (2000)
+            split_count = (1000)
             list_count = len(iplist) / split_count
             if list_count > 1:
                 for i in xrange(list_count):
