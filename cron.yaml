@@ -1,5 +1,4 @@
 cron:
 - description: daily summary job
   url: /cron
-  schedule: every day 00:00
-  timezone: Asia/Tokyo
+  schedule: every day 00:10

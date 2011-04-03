@@ -6,6 +6,7 @@ import os
 import time
 import hashlib
 import logging
+import pickle
 import zlib
 
 from google.appengine.api import taskqueue
@@ -64,6 +65,10 @@ class IP:
     def EndIP(self):
         return self.__convert__(self.end - 1)
 
+class CacheStore(db.Model):
+    name = db.StringProperty(required = True)
+    cache = db.BlobProperty()
+
 class IPTable():
     def __init__(self, registry, cc, ip):
         self.registry = registry
@@ -75,15 +80,88 @@ class Countries():
         self.cc = cc
         self.registry = registry
 
-def Clear(registry, count = 0):
+def get_cache(name):
+    # memcacheから取得
+    cache = memcache.get(name)
+    if cache:
+        logging.info('Get cache success. "%s"' % name)
+        return cache
+    else:
+        logging.error('Get cache failure. "%s"' % name)
+
+        # データストア内のキャッシュから取得
+        logging.info('Get DataStore "CacheStore" start. "%s"' % name)
+        query = db.GqlQuery("SELECT * FROM CacheStore WHERE name = :1", name)
+        record = query.get()
+        if record:
+            logging.info('Get Datastore "CacheStore" success. "%s"' % name)
+
+            # memcache内に保存し直しておく
+            storecache = pickle.loads(record.cache)
+            if memcache.set(name, storecache):
+                logging.info('Set cache success. "%s"' % name)
+            else:
+                logging.error('Set cache failure. "%s"' % name)
+            return storecache
+        else:
+            logging.error('Get Datastore "CacheStore" failure. "%s"' % name)
+            return None
+
+def set_cache(name, value):
+    # memcacheに保存
+    if memcache.set(name, value):
+        logging.info('Set cache success. "%s"' % name)
+
+        # データストアにキャッシュを保存
+        logging.info('Set Datastore "CacheStore" start. "%s"' % name)
+        store = CacheStore(
+                name = name, 
+                cache = pickle.dumps(value, pickle.HIGHEST_PROTOCOL))
+        store.put()
+        logging.info('Set Datastore "CacheStore" success. "%s"' % name)
+        return True
+    else:
+        logging.error('Set cache failure. "%s"' % name)
+        return False
+
+def Clear(registry, default_count = 0):
+    logging.info('DataStore"CacheStore" cache clear start.')
+    # データストアキャッシュの削除
+    count = default_count
+    del_record = []
+    while True:
+        query = db.GqlQuery("SELECT * FROM CacheStore WHERE name = :1", '%s_%d' % (registry, count))
+        record = query.get()
+        if not record:
+            if del_record:
+                db.delete(del_record)
+            break
+        del_record.append(record)
+        count += 1
+    # 国名のデータストアキャッシュの削除
+    query = db.GqlQuery("SELECT * FROM CacheStore WHERE name = :1", '%s_COUNTRIES' % registry)
+    record = query.get()
+    if record:
+        record.delete()
+
+    # キャッシュの削除
+    logging.info('Cache clear start.')
+    count = default_count
     while True:
         result = memcache.delete('%s_%d' % (registry, count))
         if result != 2:
             break
+        count += 1
+    # 国名のキャッシュの削除
+    result = memcache.delete('%s_COUNTRIES' % registry)
+    logging.info('Cache clear end.')
 
 def ClearAll():
+    logging.info('Cache all clear start.')
     if not memcache.flush_all():
         logging.error('memcache flush_all failure.')
+    db.delete(CacheStore.all())
+    logging.info('Cache all clear end.')
 
 def CRC32Check(string):
     return zlib.crc32(string) & 0xFFFFFFFF
@@ -168,11 +246,7 @@ class DataStore(webapp.RequestHandler):
             return False
 
         # 前回のハッシュを取得
-        oldhash = memcache.get('%s_HASH' % registry)
-        if oldhash:
-            logging.info('Get %s_hash Successs.' % registry)
-        else:
-            logging.info('Get %s_hash Failure.' % registry)
+        oldhash = get_cache('%s_HASH' % registry)
 
         # 前回のハッシュと今回のハッシュを比較
         get = True
@@ -206,6 +280,9 @@ class DataStore(webapp.RequestHandler):
                     ip = IPTable(registry = registry, cc = record.group(1), ip = ipobj)
                     iplist.append(ip)
                     countries.add(record.group(1))
+
+            if len(iplist) == 0:
+                return False
             iplist.sort(lambda x, y: cmp(x.cc, y.cc)) # 国ごとにソート
 
             # 一定数ごとにキャッシュに保存
@@ -213,32 +290,25 @@ class DataStore(webapp.RequestHandler):
             list_count = len(iplist) / split_count
             if list_count > 1:
                 for i in xrange(list_count):
-                    if not memcache.set('%s_%d' % (registry, i), iplist[i * split_count : (i + 1) * split_count]):
-                        logging.error('Set iplist failure. "%s_%d"' % (registry, cache_count))
+                    if not set_cache('%s_%d' % (registry, i), iplist[i * split_count : (i + 1) * split_count]):
                         return False
 
                 # 残った分をキャッシュに保存
-                if not memcache.set('%s_%d' % (registry, list_count), iplist[list_count * split_count:]):
-                    logging.error('Set iplist failure. "%s_%d"' % (registry, list_count))
+                if not set_cache('%s_%d' % (registry, list_count), iplist[list_count * split_count:]):
                     return False
             else:
                 # 全てキャッシュに追加
-                if not memcache.set('%s_%d' % (registry, 0), iplist):
-                    logging.error('Set iplist failure. "%s_%d"' % (registry, 0))
+                set_cache('%s_%d' % (registry, 0), iplist)
 
             # 国名リストをキャッシュに保存
             ctablelist = []
             for country in countries:
                 ctable = Countries(cc = country, registry = registry)
                 ctablelist.append(ctable)
-            if not memcache.set('%s_COUNTRIES' % registry, ctablelist):
-                logging.error('Set ctablelist failure. "%s_countries"' % registry)
+            set_cache('%s_COUNTRIES' % registry, ctablelist)
 
             # ハッシュ更新
-            if memcache.set('%s_HASH' % registry, newhash):
-                logging.error('Set %s_hash Success.' % registry)
-            else:
-                logging.error('Set %s_hash Failure.' % registry)
+            set_cache('%s_HASH' % registry, newhash)
 
             logging.info('Update complete the "%s".' % registry)
 
@@ -252,9 +322,9 @@ class ViewHandler(webapp.RequestHandler):
         for registry in RIR.keys():
             count = 0
             line = 0
-            self.response.out.write('<strong>%s</strong><br />' % registry)
+            self.response.out.write('<strong>%s | %s</strong><br />' % (registry, get_cache('%s_HASH' % registry)))
             while True:
-                cache = memcache.get('%s_%d' % (registry, count))
+                cache = get_cache('%s_%d' % (registry, count))
                 if not cache:
                     break
 
