@@ -17,6 +17,7 @@ header, section, footer {
 	background-color: #DDD;
 	color: #000;
 }
+
 header {
 	width: 820px;
 	padding: 20px;
@@ -26,6 +27,7 @@ header {
     -moz-border-radius: 16px 16px 0px 0px;
     -webkit-border-radius: 16px 16px 0px 0px;
 }
+
 section {
 	background-color: #EEE;
 
@@ -33,6 +35,7 @@ section {
     -moz-box-shadow: black 0px 5px 10px;
     -webkit-box-shadow: black 0px 5px 10px;
 }
+
 footer {
 	width: 850px;
 	padding: 5px;
@@ -42,6 +45,7 @@ footer {
     -moz-border-radius: 0px 0px 16px 16px;
     -webkit-border-radius: 0px 0px 16px 16px;
 }
+
 body {
 	background-color: #E4E4E4;
 }
@@ -49,9 +53,11 @@ body {
 div#title {
 	font-size: 32px;
 }
+
 div#version {
 	font-size: 16px;
 }
+
 div#view {
 	width: 200px;
 	height: 200px;
@@ -140,4 +146,66 @@ div#view {
 	background: -moz-linear-gradient(top center, #d1d1d1, #f2f2f2 80%) repeat scroll 0 0 #f2f2f2;
 	background: -webkit-gradient(linear,left bottom,left top,color-stop(.2, #f2f2f2),color-stop(.8, #d1d1d1));
 	background-color: #f2f2f2;
+}
+
+#accordion {
+	box-shadow: 2px 2px 5px #000000;
+	-moz-box-shadow: 2px 2px 5px #000000;
+	-webkit-box-shadow: 2px 2px 5px #000000;
+
+	background: #333;
+	width: 150px;
+	border: 1px solid #333;	
+	float: left;
+	margin: 0 10px;
+}
+
+#accordion a:link, a:visited {
+	color: #DDD;
+}
+
+#accordion h2 {
+	background: -moz-linear-gradient(top center, #d1d1d1, #f2f2f2 80%) repeat scroll 0 0 #f2f2f2;
+	background: -webkit-gradient(linear, left bottom, left top, color-stop(.2, #f2f2f2), color-stop(.8, #d1d1d1));
+
+	margin: 0;
+	padding: 5px 15px;
+	font-size: 14px;
+	font-weight: normal;
+	border: 1px solid #fff;
+	border-bottom: 1px solid #ddd;
+	cursor: pointer;		
+}
+
+#accordion h2.current {
+	cursor: default;
+	background-color: #fff;
+}
+
+#accordion .pane {
+	border: 1px solid #fff;
+	border-width: 0 2px;
+	display: none;
+	height: 180px;
+	padding: 15px;
+	color: #fff;
+	font-size: 12px;
+}
+
+#accordion .pane h3 {
+	font-weight: normal;
+	margin: 0 0 -5px 0;
+	font-size: 16px;
+	color: #999;
+}
+
+#accordion .countries {
+	height: 190px;
+	overflow-y: scroll;
+}
+
+.view {
+	height: 300px;
+	width: 500px;
+	overflow-y: scroll;
 }

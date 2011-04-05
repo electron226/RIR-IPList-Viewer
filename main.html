@@ -13,16 +13,16 @@
 <script type="text/javascript" src="js/main.js"></script>
 
 <script type="text/javascript">
-$(document).ready(function(){
-	$(".tabs li a").click(function() {
-		$(".tabs li").removeClass("selected");
-		$(".tabs li").addClass("noselected");
+	$(document).ready(function(){
+		$(".tabs li a").click(function() {
+			$(".tabs li").removeClass("selected");
+			$(".tabs li").addClass("noselected");
 
-		$(this).parents().removeClass("noselected");
-		$(this).parents().addClass("selected");
-		return false;
+			$(this).parents().removeClass("noselected");
+			$(this).parents().addClass("selected");
+			return false;
+		});
 	});
-});
 </script>
 </head>
 
@@ -42,19 +42,75 @@ $(document).ready(function(){
 <section>
 <article>
 <div class="panes">
-	<div>
-		<button id="open">表示</button>
-		<button id="close">削除</button>
-		<div id="view"></div>
+	<div class="page">
+		<div id="accordion">
+			<h2 class="current">Registry</h2>
+			<div class="pane" style="display:block">
+				<p class="afrinic"><a href="#">AFRINIC</a></p>
+				<p class="arin"><a href="#">ARIN</a></p>
+				<p class="apnic"><a href="#">APNIC</a></p>
+				<p class='lacnic'><a href="#">LACNIC</a></p>
+				<p class="ripe"><a href="#">RIPE</a></p>
+			</div>
+			<h2>Country</h2>
+			<div class="pane">
+				<div class="countries">
+					{% for country in countries %}
+						<p class="{{ country.cc }}"><a href="#">{{ country.cc }}</a></p>
+					{% endfor %}
+				</div>
+			</div>
+		</div>
+		<div class="view">
+			<table border="1">
+				<colgroup width="100">
+				<colgroup width="50">
+				<colgroup span="2" width="150">
+				<thead>
+					<tr>
+						<th>registry</th>
+						<th>cc</th>
+						<th>StartIP</th>
+						<th>EndIP</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td>AFRINIC</td>
+						<td>AN</td>
+						<td>0.0.0.0</td>
+						<td>255.255.255.255</td>
+					</tr>
+					<tr>
+						<td>AFRINIC</td>
+						<td>AN</td>
+						<td>0.0.0.0</td>
+						<td>255.255.255.255</td>
+					</tr>
+					<tr>
+						<td>AFRINIC</td>
+						<td>AN</td>
+						<td>0.0.0.0</td>
+						<td>255.255.255.255</td>
+					</tr>
+					<tr>
+						<td>AFRINIC</td>
+						<td>AN</td>
+						<td>0.0.0.0</td>
+						<td>255.255.255.255</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
 	</div>
-	<div>Page2</div>
-	<div>Page3</div>
+	<div class="page">Page2</div>
+	<div class="page">Page3</div>
+</div>
 </article>
 </section>
 
 <footer>
 <p>まだまだ構成中。</p>
 </footer>
-
 </body>
 </html>

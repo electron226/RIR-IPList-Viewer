@@ -84,22 +84,22 @@ def get_cache(name):
     # memcacheから取得
     cache = memcache.get(name)
     if cache:
-        logging.info('Get cache success. "%s"' % name)
+        logging.debug('Get cache success. "%s"' % name)
         return cache
     else:
-        logging.error('Get cache failure. "%s"' % name)
+        logging.debug('Get cache failure. "%s"' % name)
 
         # データストア内のキャッシュから取得
         logging.info('Get DataStore "CacheStore" start. "%s"' % name)
         query = db.GqlQuery("SELECT * FROM CacheStore WHERE name = :1", name)
         record = query.get()
         if record:
-            logging.info('Get Datastore "CacheStore" success. "%s"' % name)
+            logging.debug('Get Datastore "CacheStore" success. "%s"' % name)
 
             # memcache内に保存し直しておく
             storecache = pickle.loads(record.cache)
             if memcache.set(name, storecache):
-                logging.info('Set cache success. "%s"' % name)
+                logging.debug('Set cache success. "%s"' % name)
             else:
                 logging.error('Set cache failure. "%s"' % name)
             return storecache
@@ -110,7 +110,7 @@ def get_cache(name):
 def set_cache(name, value):
     # memcacheに保存
     if memcache.set(name, value):
-        logging.info('Set cache success. "%s"' % name)
+        logging.debug('Set cache success. "%s"' % name)
 
         # データストアにキャッシュを保存
         logging.info('Set Datastore "CacheStore" start. "%s"' % name)
@@ -118,7 +118,7 @@ def set_cache(name, value):
                 name = name, 
                 cache = pickle.dumps(value, pickle.HIGHEST_PROTOCOL))
         store.put()
-        logging.info('Set Datastore "CacheStore" success. "%s"' % name)
+        logging.debug('Set Datastore "CacheStore" success. "%s"' % name)
         return True
     else:
         logging.error('Set cache failure. "%s"' % name)
@@ -336,9 +336,18 @@ class ViewHandler(webapp.RequestHandler):
 
 class MainHandler(webapp.RequestHandler):
     def get(self):
+        countries = []
+        for registry in RIR.keys():
+            try:
+                countries += get_cache('%s_COUNTRIES' % registry)
+            except TypeError:
+                logging.error('Get %s_COUNTIRES Error.' % registry)
+        countries.sort(lambda x, y: cmp(x.cc, y.cc))
+
         template_values = {
                 'title': program_title,
-                'version': program_version
+                'version': program_version,
+                'countries': countries
                 }
         path = os.path.join(os.path.dirname(__file__), 'main.html')
         self.response.out.write(template.render(path, template_values))
