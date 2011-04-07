@@ -3,7 +3,6 @@
 import sys
 import re
 import os
-import time
 import hashlib
 import logging
 import pickle
@@ -69,16 +68,15 @@ class CacheStore(db.Model):
     name = db.StringProperty(required = True)
     cache = db.BlobProperty()
 
-class IPTable():
-    def __init__(self, registry, cc, ip):
+class Countries():
+    def __init__(self, registry, cc):
         self.registry = registry
+        self.cc = cc
+
+class CountryIP():
+    def __init__(self, cc, ip):
         self.cc = cc
         self.ip = ip
-
-class Countries():
-    def __init__(self, cc, registry):
-        self.cc = cc
-        self.registry = registry
 
 def get_cache(name):
     # memcacheから取得
@@ -126,32 +124,40 @@ def set_cache(name, value):
 
 def Clear(registry, default_count = 0):
     logging.info('DataStore"CacheStore" cache clear start.')
+
     # データストアキャッシュの削除
-    count = default_count
-    del_record = []
-    while True:
-        query = db.GqlQuery("SELECT * FROM CacheStore WHERE name = :1", '%s_%d' % (registry, count))
-        record = query.get()
-        if not record:
-            if del_record:
-                db.delete(del_record)
-            break
-        del_record.append(record)
-        count += 1
-    # 国名のデータストアキャッシュの削除
-    query = db.GqlQuery("SELECT * FROM CacheStore WHERE name = :1", '%s_COUNTRIES' % registry)
-    record = query.get()
-    if record:
-        record.delete()
+    countries_cache = get_cache('%s_COUNTRIES' % registry)
+    for countries in countries_cache:
+        country = countries.cc
+
+        count = default_count
+        del_record = []
+        while True:
+            query = db.GqlQuery("SELECT * FROM CacheStore WHERE name = :1", '%s_%d' % (country, count))
+            record = query.get()
+            if not record:
+                if del_record:
+                    db.delete(del_record)
+                break
+            del_record.append(record)
+            count += 1
 
     # キャッシュの削除
     logging.info('Cache clear start.')
-    count = default_count
-    while True:
-        result = memcache.delete('%s_%d' % (registry, count))
-        if result != 2:
-            break
-        count += 1
+    for countries in countries_cache:
+        country = countries.cc
+
+        count = default_count
+        while True:
+            result = memcache.delete('%s_%d' % (country, count))
+            if result != 2:
+                break
+            count += 1
+
+    # 国名のデータストアキャッシュの削除
+    query = db.GqlQuery("SELECT * FROM CacheStore WHERE name = :1", '%s_COUNTRIES' % registry)
+    db.delete(query)
+
     # 国名のキャッシュの削除
     result = memcache.delete('%s_COUNTRIES' % registry)
     logging.info('Cache clear end.')
@@ -277,7 +283,7 @@ class DataStore(webapp.RequestHandler):
                 record = self.record_rule.search(line)
                 if record:
                     ipobj = IP(record.group(2), record.group(3), record.group(4), record.group(5), record.group(6))
-                    ip = IPTable(registry = registry, cc = record.group(1), ip = ipobj)
+                    ip = CountryIP(cc = record.group(1), ip = ipobj)
                     iplist.append(ip)
                     countries.add(record.group(1))
 
@@ -285,26 +291,50 @@ class DataStore(webapp.RequestHandler):
                 return False
             iplist.sort(lambda x, y: cmp(x.cc, y.cc)) # 国ごとにソート
 
-            # 一定数ごとにキャッシュに保存
             split_count = (1000)
-            list_count = len(iplist) / split_count
-            if list_count > 1:
-                for i in xrange(list_count):
-                    if not set_cache('%s_%d' % (registry, i), iplist[i * split_count : (i + 1) * split_count]):
+            land = iplist[0].cc
+            pos = 0
+            for i in xrange(1, len(iplist)):
+                if iplist[i].cc != land:
+                    record = iplist[pos : i]
+
+                    # 一定数ごとにキャッシュに保存
+                    list_count = len(record) / split_count
+                    if list_count > 0:
+                        for j in xrange(len(list_count)):
+                            if not set_cache('%s_%d' % (land, j), record[j * split_count : (j + 1) * split_count]):
+                                logging.error('iplist cache failure. "%s_%d"' % (lang, j))
+                                return False
+
+                    # 残った分をキャッシュに保存
+                    if not set_cache('%s_%d' % (land, list_count), record[list_count * split_count:]):
+                        logging.error('Error, remain of iplist cache. "%s_%d"' % (lang, list_count))
                         return False
 
-                # 残った分をキャッシュに保存
-                if not set_cache('%s_%d' % (registry, list_count), iplist[list_count * split_count:]):
+                    land = iplist[i].cc
+                    pos = i
+            # 最後の国の分をキャッシュに保存
+            record = iplist[pos:]
+
+            # 最後の国のリスト一定数ごとにキャッシュに保存
+            list_count = len(record) / split_count
+            if list_count > 0:
+                for j in xrange(len(list_count)):
+                    if not set_cache('%s_%d' % (land, j), record[j * split_count : (j + 1) * split_count]):
+                        logging.error('iplist cache failure. "%s_%d"' % (lang, j))
+                        return False
+
+            # 最後の国のリストの残った分をキャッシュに保存
+            if not set_cache('%s_%d' % (land, list_count), record[list_count * split_count:]):
+                    logging.error('Error, remain of iplist cache. "%s_%d"' % (lang, list_count))
                     return False
-            else:
-                # 全てキャッシュに追加
-                set_cache('%s_%d' % (registry, 0), iplist)
 
             # 国名リストをキャッシュに保存
             ctablelist = []
             for country in countries:
-                ctable = Countries(cc = country, registry = registry)
+                ctable = Countries(registry = registry, cc = country)
                 ctablelist.append(ctable)
+            ctablelist.sort(lambda x, y: cmp(x.cc, y.cc)) # 国名ソート
             set_cache('%s_COUNTRIES' % registry, ctablelist)
 
             # ハッシュ更新
@@ -320,18 +350,25 @@ class CronHandler(webapp.RequestHandler):
 class ViewHandler(webapp.RequestHandler):
     def get(self):
         for registry in RIR.keys():
-            count = 0
-            line = 0
             self.response.out.write('<strong>%s | %s</strong><br />' % (registry, get_cache('%s_HASH' % registry)))
-            while True:
-                cache = get_cache('%s_%d' % (registry, count))
-                if not cache:
-                    break
 
-                for ipobj in cache:
-                    self.response.out.write('%d:\t%s\t%d\t%s<br />' % (line, ipobj.ip.StartIP(), ipobj.ip.value, ipobj.cc))
-                    line += 1
-                count += 1
+            line = 0
+            countries_cache = get_cache('%s_COUNTRIES' % registry)
+            if countries_cache == None:
+                continue
+
+            for countries in countries_cache:
+                country = countries.cc
+                count = 0
+                while True:
+                    cache = get_cache('%s_%d' % (country, count))
+                    if not cache:
+                        break
+
+                    for ipobj in cache:
+                        self.response.out.write('%d:\t%s\t%d\t%s<br />' % (line, ipobj.ip.StartIP(), ipobj.ip.value, ipobj.cc))
+                        line += 1
+                    count += 1
             self.response.out.write('<br />')
 
 class MainHandler(webapp.RequestHandler):
@@ -342,7 +379,6 @@ class MainHandler(webapp.RequestHandler):
                 countries += get_cache('%s_COUNTRIES' % registry)
             except TypeError:
                 logging.error('Get %s_COUNTIRES Error.' % registry)
-        countries.sort(lambda x, y: cmp(x.cc, y.cc))
 
         template_values = {
                 'title': program_title,

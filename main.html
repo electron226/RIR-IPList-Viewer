@@ -43,9 +43,33 @@
 <article>
 <div class="panes">
 	<div class="page">
+		<!-- Top -->
+		<table id="explaction">
+			<colgroup width="80">
+			<colgroup width="20">
+			<colgroup width="300">
+			<tr>
+				<td>Top</td>
+				<td>-</td>
+				<td>このページ</td>
+			</tr>
+			<tr>
+				<td>Database</td>
+				<td>-</td>
+				<td>データベースのリストを閲覧</td>
+			</tr>
+			<tr>
+				<td>Configured</td>
+				<td>-</td>
+				<td>自由にリストを構成、ダウンロード</td>
+			</tr>
+		</table>
+	</div>
+	<div class="page">
+		<!-- Database Tab -->
 		<div id="accordion">
 			<h2 class="current">Registry</h2>
-			<div class="pane" style="display:block">
+			<div class="pane registry" style="display:block">
 				<p class="afrinic"><a href="#">AFRINIC</a></p>
 				<p class="arin"><a href="#">ARIN</a></p>
 				<p class="apnic"><a href="#">APNIC</a></p>
@@ -53,12 +77,10 @@
 				<p class="ripe"><a href="#">RIPE</a></p>
 			</div>
 			<h2>Country</h2>
-			<div class="pane">
-				<div class="countries">
+			<div class="pane countries">
 					{% for country in countries %}
 						<p class="{{ country.cc }}"><a href="#">{{ country.cc }}</a></p>
 					{% endfor %}
-				</div>
 			</div>
 		</div>
 		<div class="view">
@@ -103,7 +125,6 @@
 			</table>
 		</div>
 	</div>
-	<div class="page">Page2</div>
 	<div class="page">Page3</div>
 </div>
 </article>
