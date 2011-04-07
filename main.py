@@ -127,32 +127,33 @@ def Clear(registry, default_count = 0):
 
     # データストアキャッシュの削除
     countries_cache = get_cache('%s_COUNTRIES' % registry)
-    for countries in countries_cache:
-        country = countries.cc
+    if countries_cache != None:
+        for countries in countries_cache:
+            country = countries.cc
 
-        count = default_count
-        del_record = []
-        while True:
-            query = db.GqlQuery("SELECT * FROM CacheStore WHERE name = :1", '%s_%d' % (country, count))
-            record = query.get()
-            if not record:
-                if del_record:
-                    db.delete(del_record)
-                break
-            del_record.append(record)
-            count += 1
+            count = default_count
+            del_record = []
+            while True:
+                query = db.GqlQuery("SELECT * FROM CacheStore WHERE name = :1", '%s_%d' % (country, count))
+                record = query.get()
+                if not record:
+                    if del_record:
+                        db.delete(del_record)
+                    break
+                del_record.append(record)
+                count += 1
 
-    # キャッシュの削除
-    logging.info('Cache clear start.')
-    for countries in countries_cache:
-        country = countries.cc
+        # キャッシュの削除
+        logging.info('Cache clear start.')
+        for countries in countries_cache:
+            country = countries.cc
 
-        count = default_count
-        while True:
-            result = memcache.delete('%s_%d' % (country, count))
-            if result != 2:
-                break
-            count += 1
+            count = default_count
+            while True:
+                result = memcache.delete('%s_%d' % (country, count))
+                if result != 2:
+                    break
+                count += 1
 
     # 国名のデータストアキャッシュの削除
     query = db.GqlQuery("SELECT * FROM CacheStore WHERE name = :1", '%s_COUNTRIES' % registry)
@@ -301,7 +302,7 @@ class DataStore(webapp.RequestHandler):
                     # 一定数ごとにキャッシュに保存
                     list_count = len(record) / split_count
                     if list_count > 0:
-                        for j in xrange(len(list_count)):
+                        for j in xrange(list_count):
                             if not set_cache('%s_%d' % (land, j), record[j * split_count : (j + 1) * split_count]):
                                 logging.error('iplist cache failure. "%s_%d"' % (lang, j))
                                 return False
@@ -319,7 +320,7 @@ class DataStore(webapp.RequestHandler):
             # 最後の国のリスト一定数ごとにキャッシュに保存
             list_count = len(record) / split_count
             if list_count > 0:
-                for j in xrange(len(list_count)):
+                for j in xrange(list_count):
                     if not set_cache('%s_%d' % (land, j), record[j * split_count : (j + 1) * split_count]):
                         logging.error('iplist cache failure. "%s_%d"' % (lang, j))
                         return False
@@ -390,7 +391,8 @@ class MainHandler(webapp.RequestHandler):
 
 def main():
     application = webapp.WSGIApplication([
-        ('/', MainHandler),
+        #('/', MainHandler),
+        ('/web', MainHandler),
         ('/cron', CronHandler),
         ('/view', ViewHandler),
         ('/datastore', DataStore)],
