@@ -391,8 +391,7 @@ class MainHandler(webapp.RequestHandler):
 
 def main():
     application = webapp.WSGIApplication([
-        #('/', MainHandler),
-        ('/web', MainHandler),
+        ('/', MainHandler),
         ('/cron', CronHandler),
         ('/view', ViewHandler),
         ('/datastore', DataStore)],
