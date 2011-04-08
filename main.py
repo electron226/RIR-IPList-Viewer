@@ -229,10 +229,12 @@ class DataStore(webapp.RequestHandler):
                         SaveAddress = i
                         IPList[i].end = IPList[i + 1].end
                         IPList[i + 1].start = None
+                        IPList[i].value += IPList[i + 1].value
                     else:
                         # 以前に結合したことがあるIP範囲
                         IPList[SaveAddress].end = IPList[i + 1].end
                         IPList[i + 1].start = None
+                        IPList[SaveAddress].value += IPList[i + 1].value
                 else:
                     SaveAddress = None
 
@@ -331,7 +333,8 @@ class DataStore(webapp.RequestHandler):
 class CronHandler(webapp.RequestHandler):
     def get(self):
         list = IPList()
-        list.retrieve(RIR.keys())
+        #list.retrieve(RIR.keys())
+        list.retrieve(["AFRINIC"])
 
 class ViewHandler(webapp.RequestHandler):
     def get(self):
