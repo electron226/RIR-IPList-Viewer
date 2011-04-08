@@ -295,8 +295,7 @@ class DataStore(webapp.RequestHandler):
 class CronHandler(webapp.RequestHandler):
     def get(self):
         list = IPList()
-        #list.retrieve(RIR.keys())
-        list.retrieve(["AFRINIC"])
+        list.retrieve(RIR.keys())
 
 class ViewHandler(webapp.RequestHandler):
     def get(self):
