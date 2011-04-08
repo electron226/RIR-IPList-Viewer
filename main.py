@@ -215,6 +215,39 @@ class DataStore(webapp.RequestHandler):
     # G1 = 国コード, G6 = 範囲
     record_rule = re.compile(r'([A-Z]{2})\|ipv4\|(\d+).(\d+).(\d+).(\d+)\|(\d+)') # IPv4
 
+    # 最適化
+    # cciplist : 国ごとのIPリスト
+    def Combine(self, cciplist):
+        for values in cciplist.itervalues():
+            SaveAddress = None
+            for i in xrange(len(values) - 1):
+                IPList = values
+                # 現在のIP範囲の末尾と次のIP範囲の開始が同じ
+                if IPList[i].end == IPList[i + 1].start:
+                    if not SaveAddress:
+                        # まだ結合されていないIP範囲
+                        SaveAddress = i
+                        IPList[i].end = IPList[i + 1].end
+                        IPList[i + 1].start = None
+                    else:
+                        # 以前に結合したことがあるIP範囲
+                        IPList[SaveAddress].end = IPList[i + 1].end
+                        IPList[i + 1].start = None
+                else:
+                    SaveAddress = None
+
+        # 不要部分削除
+        for values in cciplist.itervalues():
+            clear_index = []
+            for i in xrange(len(values)):
+                if values[i].start == None:
+                    clear_index.append(i)
+
+            count = 0
+            for i in clear_index:
+                values.pop(i - count)
+                count += 1
+
     def post(self):
         registry = self.request.get('registry')
 
@@ -278,6 +311,9 @@ class DataStore(webapp.RequestHandler):
             if len(iplist) == 0:
                 return False
 
+            # 最適化
+            self.Combine(iplist)
+
             for key, value in iplist.items():
                 ccjson = simplejson.dumps(value, cls = IPEncoder)
                 if not set_cache('%s' % key, ccjson):
@@ -324,10 +360,10 @@ class MainHandler(webapp.RequestHandler):
         countries = []
         for registry in RIR.keys():
             try:
-                countries += get_cache('%s_COUNTRIES' % registry)
+                countries.extend(get_cache('%s_COUNTRIES' % registry))
             except TypeError:
                 logging.error('Get %s_COUNTIRES Error.' % registry)
-        countries.sort(lambda x, y: cmp(x.cc, y.cc)) # 国名ソート
+        countries.sort() # 国名ソート
 
         template_values = {
                 'title': program_title,
