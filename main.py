@@ -145,14 +145,16 @@ def Clear(registry):
     if countries_cache != None:
         for country in countries_cache:
             query = db.GqlQuery("SELECT * FROM CacheStore WHERE name = :1", country)
-            db.delete(query)
+            for q in query.fetch(1000):
+                q.delete()
 
             # キャッシュの削除
             memcache.delete('%s' % country)
 
     # 国名のデータストアキャッシュの削除
     query = db.GqlQuery("SELECT * FROM CacheStore WHERE name = :1", '%s_COUNTRIES' % registry)
-    db.delete(query)
+    for q in query.fetch(1000):
+        q.delete()
 
     # 国名のキャッシュの削除
     memcache.delete('%s_COUNTRIES' % registry)
@@ -305,7 +307,7 @@ class DataStore(webapp.RequestHandler):
             logging.info('Start update the "%s".' % registry)
 
             # 一致するレジストリのキャッシュを削除
-            Clear(registry)
+            # Clear(registry)
 
             # 取得したリストをキャッシュに保存
             iplist = {}
