@@ -83,6 +83,7 @@ def IPDecoder(dec):
 class CacheStore(db.Model):
     name = db.StringProperty(required = True)
     cache = db.BlobProperty()
+    usepickle = db.BooleanProperty()
 
 def get_cache(name):
     # memcacheから取得
@@ -101,7 +102,8 @@ def get_cache(name):
             logging.debug('Get Datastore "CacheStore" success. "%s"' % name)
 
             # memcache内に保存し直しておく
-            storecache = pickle.loads(record.cache)
+            storecache = pickle.loads(record.cache) if record.usepickle else record.cache
+
             if memcache.set(name, storecache):
                 logging.debug('Set cache success. "%s"' % name)
             else:
@@ -111,16 +113,23 @@ def get_cache(name):
             logging.error('Get Datastore "CacheStore" failure. "%s"' % name)
             return None
 
-def set_cache(name, value):
+# name : キャッシュ名
+# value : キャッシュする値
+# usepickle : valueをpickleで変換してキャッシュするか(True, False)
+def set_cache(name, value, usepickle):
     # memcacheに保存
     if memcache.set(name, value):
         logging.debug('Set cache success. "%s"' % name)
 
+        # 古いデータストアのデータを削除
+        query = db.GqlQuery("SELECT * FROM CacheStore WHERE name = :1", name)
+        db.delete(query)
+
         # データストアにキャッシュを保存
         logging.info('Set Datastore "CacheStore" start. "%s"' % name)
-        store = CacheStore(
-                name = name, 
-                cache = pickle.dumps(value, pickle.HIGHEST_PROTOCOL))
+        store = CacheStore(name = name,
+                cache = pickle.dumps(value, pickle.HIGHEST_PROTOCOL) if usepickle else value,
+                usepickle = usepickle)
         store.put()
         logging.debug('Set Datastore "CacheStore" success. "%s"' % name)
         return True
@@ -318,23 +327,22 @@ class DataStore(webapp.RequestHandler):
 
             for key, value in iplist.items():
                 ccjson = simplejson.dumps(value, cls = IPEncoder)
-                if not set_cache('%s' % key, ccjson):
+                if not set_cache('%s' % key, ccjson, True):
                     logging.error('iplist cache failure. "%s"' % key)
                     return False
 
             # 国名リストをキャッシュに保存
-            set_cache('%s_COUNTRIES' % registry, iplist.keys())
+            set_cache('%s_COUNTRIES' % registry, iplist.keys(), True)
 
             # ハッシュ更新
-            set_cache('%s_HASH' % registry, newhash)
+            set_cache('%s_HASH' % registry, newhash, False)
 
             logging.info('Update complete the "%s".' % registry)
 
 class CronHandler(webapp.RequestHandler):
     def get(self):
         list = IPList()
-        #list.retrieve(RIR.keys())
-        list.retrieve(["AFRINIC"])
+        list.retrieve(RIR.keys())
 
 class ViewHandler(webapp.RequestHandler):
     def get(self):
