@@ -1,0 +1,22 @@
+application: 8risky
+version: 3
+runtime: python
+api_version: 1
+
+handlers:
+- url: /favicon\.ico
+  static_files: favicon.ico
+  upload: favicon\.ico
+- url: /cron
+  script: main.py
+  login: admin
+- url: /datastore
+  script: main.py
+  login: admin
+- url: /view
+  script: main.py
+- url: .*
+  script: main.py
+
+builtins:
+  - datastore_admin: on
