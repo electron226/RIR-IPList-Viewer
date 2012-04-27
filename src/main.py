@@ -14,9 +14,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
+
+# DJANGO
+os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
+
+from google.appengine.dist import use_library
+use_library('django', '1.1')
+
 from django.utils import simplejson
+
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import util
+from google.appengine.ext.webapp import template
 
 import common
 import ips
@@ -25,8 +35,8 @@ import datastore
 
 class CronHandler(webapp.RequestHandler):
     def get(self):
-        ips = iplist.IPList()
-        ips.retrieve(common.RIR)
+        ipl = iplist.IPList()
+        ipl.retrieve(common.RIR)
 
 class ViewHandler(webapp.RequestHandler):
     def get(self):
@@ -54,9 +64,30 @@ class ViewHandler(webapp.RequestHandler):
                     line += 1
             self.response.out.write('<br />')
 
+def GetCountry(countries):
+    cc = countries.split(',')
+    
+    iptable = []
+    for country in cc:
+        data = common.get_cache(country)
+        if data:
+            cjson = simplejson.loads(data)
+            for ipobj in cjson:
+                ip = ips.IPDecoder(ipobj)
+                iptable.append((ip.StartIP(), ip.EndIP()))
+    
+    return iptable if len(iptable) != 0 else None
+
 class MainHandler(webapp.RequestHandler):
     def get(self):
-        self.response.out.write('Hello world!')
+        country = self.request.get('country')
+
+        iptable = GetCountry(country)
+        
+        template_values = { 'list' : iptable,
+                           }
+        path = os.path.join(os.path.dirname(__file__), 'index.html')
+        self.response.out.write(template.render(path, template_values))
 
 def main():
     application = webapp.WSGIApplication([

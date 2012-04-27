@@ -48,16 +48,9 @@ class DataStoreHandler(webapp.RequestHandler):
 
         # 不要部分削除
         for values in cciplist.itervalues():
-            clear_index = []
-            for i in xrange(len(values)):
-                if values[i].start == None:
-                    clear_index.append(i)
-            # ↑をiではなくvalues[i]を格納
-            # ここを修正する。
-            count = 0
-            for i in clear_index:
-                values.pop(i - count)
-                count += 1
+            clear_list = [x for x in values if x.start == None]
+            for clear in clear_list:
+                values.remove(clear)
 
     def post(self):
         global reghash_keyname
@@ -112,7 +105,7 @@ class DataStoreHandler(webapp.RequestHandler):
             logging.info('Start update the "%s".' % registry)
 
             # 一致するレジストリのキャッシュを削除
-            # Clear(registry)
+            common.Clear(registry)
 
             # 取得したIP一覧を最適化後に保存
             iplist = {}
@@ -134,10 +127,21 @@ class DataStoreHandler(webapp.RequestHandler):
             self.Combine(iplist)
 
             # 保存
-            for key, value in iplist.items():
+            for country, value in iplist.items():
+                # 既に別のレジストリから追記されているデータに追記させる
+                olddata = common.get_cache(country)
+                if olddata:
+                    cjson = simplejson.loads(olddata)
+                    oldip = []
+                    for ipobj in cjson:
+                        ip = ips.IPDecoder(ipobj)
+                        oldip.append(ip)
+                    value = oldip + value
+                    
+                # 保存
                 ccjson = simplejson.dumps(value, cls = ips.IPEncoder)
-                if not common.set_cache('%s' % key, ccjson, True):
-                    logging.error('iplist cache failure. "%s"' % key)
+                if not common.set_cache('%s' % country, ccjson, True):
+                    logging.error('iplist cache failure. "%s"' % country)
                     return False
 
             # 国名一覧をキャッシュに保存

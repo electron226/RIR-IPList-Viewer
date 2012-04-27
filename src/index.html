@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<title>test page</title>
+<!--[if lte IE 8]>
+<script src="http://remysharp.com/downloads/html5.js" type="text/javascript"></script>
+<![endif]-->
+
+<style type="text/css">
+<!--
+-->
+</style>
+
+<body>
+
+<header>
+<h2>IP Viewer</h2>
+</header>
+
+<section>
+
+<article>
+{% for range in list %}
+    <article>
+    {% for ip in range %}
+        {{ ip }}
+    {% endfor %}
+    </article>
+{% endfor %}
+</article>
+</section>
+
+<footer>
+</footer>
+
+</body>
+</html>

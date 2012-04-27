@@ -1,6 +1,5 @@
 ﻿#!/usr/bin/env python
 # vim: set fileencoding=utf-8
-
 from django.utils import simplejson
 
 # IPアドレス範囲を格納するクラス
