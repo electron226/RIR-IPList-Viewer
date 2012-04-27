@@ -84,8 +84,8 @@ class MainHandler(webapp.RequestHandler):
 
         iptable = GetCountry(country)
         
-        template_values = { 'list' : iptable,
-                           }
+        template_values = { 'list' : iptable
+                            }
         path = os.path.join(os.path.dirname(__file__), 'index.html')
         self.response.out.write(template.render(path, template_values))
 

@@ -9,7 +9,6 @@ from google.appengine.ext import db
 
 # ----------------------------------------------------------------------------
 # 取得先
-"""
 RIR = {
         'ICANN':'http://ftp.apnic.net/stats/iana/delegated-iana-latest',
         'ARIN':'http://ftp.apnic.net/stats/arin/delegated-arin-latest',
@@ -17,10 +16,6 @@ RIR = {
         'RIPE':'http://ftp.apnic.net/stats/ripe-ncc/delegated-ripencc-latest',
         'LACNIC':'http://ftp.apnic.net/stats/lacnic/delegated-lacnic-latest',
         'AFRINIC':'http://ftp.apnic.net/stats/afrinic/delegated-afrinic-latest'
-        }
-"""
-RIR = {
-        'APNIC':'http://ftp.apnic.net/stats/apnic/delegated-apnic-latest',
         }
 
 # データベースに保存されるデータのキー名
@@ -98,7 +93,7 @@ def Clear(registry):
 
     # データストアキャッシュの削除
     countries_cache = get_cache(countries_keyname % registry)
-    if countries_cache != None:
+    if countries_cache:
         for country in countries_cache:
             query = db.GqlQuery("SELECT * FROM IPStore WHERE name = :1", country)
             qfetch = query.fetch(100)
