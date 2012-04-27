@@ -20,7 +20,7 @@ import os
 os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
 
 from google.appengine.dist import use_library
-use_library('django', '1.1')
+use_library('django', '1.2')
 
 from django.utils import simplejson
 
@@ -74,14 +74,17 @@ def GetCountry(countries):
             cjson = simplejson.loads(data)
             for ipobj in cjson:
                 ip = ips.IPDecoder(ipobj)
-                iptable.append((ip.StartIP(), ip.EndIP()))
+                iptable.append(ip)
+    
+    if len(cc) > 1:
+        iptable.sort(key = lambda x : x.start)
     
     return iptable if len(iptable) != 0 else None
 
 class MainHandler(webapp.RequestHandler):
     def get(self):
         country = self.request.get('country')
-
+        
         iptable = GetCountry(country)
         
         template_values = { 'list' : iptable

@@ -21,11 +21,9 @@
 <section>
 
 <article>
-{% for range in list %}
+{% for ipobj in list %}
     <article>
-    {% for ip in range %}
-        {{ ip }}
-    {% endfor %}
+        {{ ipobj.StartIP }} {{ ipobj.EndIP }}
     </article>
 {% endfor %}
 </article>
