@@ -4,7 +4,7 @@
 import logging
 import zlib
 
-from google.appengine.api.labs import taskqueue
+from google.appengine.api import taskqueue
 from google.appengine.api import urlfetch
 from google.appengine.api import memcache
 

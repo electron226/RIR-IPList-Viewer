@@ -19,7 +19,7 @@ import os
 import logging
 
 # DJANGO
-os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
+os.environ[u'DJANGO_SETTINGS_MODULE'] = u'settings'
 
 from google.appengine.dist import use_library
 use_library('django', '1.2')
@@ -90,28 +90,27 @@ class MainHandler(webapp.RequestHandler):
             # 入力値の国名から割当IP一覧を取得
             countries = self.request.get_all('country')
             iptable = GetCountry(countries)
-            
+        
             # キャッシュをした分割の国名データを取得
             logging.info('Get All Country Data')
             all_countries_cache = common.get_cache(common.countries_keyname % "ALL")
             countries_split = all_countries_cache if all_countries_cache else []
             if not countries_split:
                 # 取得している全ての国名を取得
-                countries_cache = []
+                countries_list = []
                 for registry in common.RIR.keys():
-                    countries_cache += common.get_cache(common.countries_keyname % registry)
-                countries_cache = list(set(countries_cache))
-                countries_cache.sort()
+                    countries_list += common.get_cache(common.countries_keyname % registry)
+                countries_list = list(set(countries_list))
+                countries_list.sort()
                 
                 # 国名の一文字目を基準として分割
-                #countries_split = []
                 first = 0
-                if countries_cache:
-                    for i in xrange(1, len(countries_cache)):
-                        if countries_cache[first][0] != countries_cache[i][0]:
-                            countries_split.append(countries_cache[first:i])
+                if countries_list:
+                    for i in xrange(1, len(countries_list)):
+                        if countries_list[first][0] != countries_list[i][0]:
+                            countries_split.append(countries_list[first:i])
                             first = i
-                countries_split.append(countries_cache[first:])
+                countries_split.append(countries_list[first:])
                 
                 # 分割した国名リストをキャッシュ
                 if common.set_cache(common.countries_keyname % "ALL", countries_split, True):
@@ -120,7 +119,7 @@ class MainHandler(webapp.RequestHandler):
                     logging.error('ALL Countries Save failure.')
         except TypeError:
             pass
-            
+        
         template_values = { 'rir' : common.RIR.keys(),
                             'countries' : countries_split,
                             'list' : iptable

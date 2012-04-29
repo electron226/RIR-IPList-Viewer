@@ -124,9 +124,11 @@ class DataStoreHandler(webapp.RequestHandler):
                 return False
 
             # 最適化
+            """
             logging.info('IPList Combine Start.')
             self.Combine(iplist)
             logging.info('IPList Combine End.')
+            """
 
             # 保存
             for country, value in iplist.items():

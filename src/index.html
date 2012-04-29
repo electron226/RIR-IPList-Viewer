@@ -51,10 +51,9 @@
 </section>
 
 <section>
+<p>出力結果</p>
 {% for ipobj in list %}
-    <article>
-        {{ ipobj.StartIP }} {{ ipobj.EndIP }}
-    </article>
+        {{ ipobj.StartIP }} {{ ipobj.EndIP }}<br>
 {% endfor %}
 </section>
 
