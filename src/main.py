@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# vim: set fileencoding=utf-8
 #
 # Copyright 2007 Google Inc.
 #
@@ -15,6 +16,7 @@
 # limitations under the License.
 #
 import os
+import logging
 
 # DJANGO
 os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
@@ -65,10 +67,8 @@ class ViewHandler(webapp.RequestHandler):
             self.response.out.write('<br />')
 
 def GetCountry(countries):
-    cc = countries.split(',')
-    
     iptable = []
-    for country in cc:
+    for country in countries:
         data = common.get_cache(country)
         if data:
             cjson = simplejson.loads(data)
@@ -76,18 +76,54 @@ def GetCountry(countries):
                 ip = ips.IPDecoder(ipobj)
                 iptable.append(ip)
     
-    if len(cc) > 1:
+    if len(countries) > 1:
         iptable.sort(key = lambda x : x.start)
     
     return iptable if len(iptable) != 0 else None
 
 class MainHandler(webapp.RequestHandler):
     def get(self):
-        country = self.request.get('country')
-        
-        iptable = GetCountry(country)
-        
-        template_values = { 'list' : iptable
+        try:
+            # 入力された取得先の一覧を取得
+            registry = self.request.get_all('registry')
+            
+            # 入力値の国名から割当IP一覧を取得
+            countries = self.request.get_all('country')
+            iptable = GetCountry(countries)
+            
+            # キャッシュをした分割の国名データを取得
+            logging.info('Get All Country Data')
+            all_countries_cache = common.get_cache(common.countries_keyname % "ALL")
+            countries_split = all_countries_cache if all_countries_cache else []
+            if not countries_split:
+                # 取得している全ての国名を取得
+                countries_cache = []
+                for registry in common.RIR.keys():
+                    countries_cache += common.get_cache(common.countries_keyname % registry)
+                countries_cache = list(set(countries_cache))
+                countries_cache.sort()
+                
+                # 国名の一文字目を基準として分割
+                #countries_split = []
+                first = 0
+                if countries_cache:
+                    for i in xrange(1, len(countries_cache)):
+                        if countries_cache[first][0] != countries_cache[i][0]:
+                            countries_split.append(countries_cache[first:i])
+                            first = i
+                countries_split.append(countries_cache[first:])
+                
+                # 分割した国名リストをキャッシュ
+                if common.set_cache(common.countries_keyname % "ALL", countries_split, True):
+                    logging.info("ALL Countries Cache Update.")
+                else:
+                    logging.error('ALL Countries Save failure.')
+        except TypeError:
+            pass
+            
+        template_values = { 'rir' : common.RIR.keys(),
+                            'countries' : countries_split,
+                            'list' : iptable
                             }
         path = os.path.join(os.path.dirname(__file__), 'index.html')
         self.response.out.write(template.render(path, template_values))

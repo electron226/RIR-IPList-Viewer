@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8" />
-<title>test page</title>
+<title>まだ工事中</title>
 <!--[if lte IE 8]>
 <script src="http://remysharp.com/downloads/html5.js" type="text/javascript"></script>
 <![endif]-->
@@ -19,14 +19,43 @@
 </header>
 
 <section>
+<form action="/" method="get">
 
 <article>
+<p>取得先レジストリ</p>
+<p>
+{% for registry in rir %}
+    <input type="checkbox" name="registry" value="{{ registry }}">{{ registry }}
+{% endfor %}
+</p>
+</article>
+
+<article>
+<p>国名</p>
+{% for country in countries %}
+    {% for cc in country %}
+        <input type="checkbox" name="country" value="{{ cc }}">{{ cc }}
+    {% endfor %}
+    <br>
+{% endfor %}
+</article>
+
+<article>
+<p>出力形式</p>
+<p><input type="text" name="style"></p>
+<!--<p><input type="text" name="style" size="60" required></p>-->
+</article>
+
+<p><input type="submit" value="送信"></p>
+</form>
+</section>
+
+<section>
 {% for ipobj in list %}
     <article>
         {{ ipobj.StartIP }} {{ ipobj.EndIP }}
     </article>
 {% endfor %}
-</article>
 </section>
 
 <footer>

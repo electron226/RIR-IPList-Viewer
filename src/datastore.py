@@ -124,12 +124,14 @@ class DataStoreHandler(webapp.RequestHandler):
                 return False
 
             # 最適化
+            logging.info('IPList Combine Start.')
             self.Combine(iplist)
+            logging.info('IPList Combine End.')
 
             # 保存
             for country, value in iplist.items():
                 # 既に別のレジストリから追記されているデータに追記させる
-                logging.info('Get Old Country IP Data "%s"' % country)
+                logging.debug('Get Old Country IP Data "%s"' % country)
                 olddata = common.get_cache(country)
                 if olddata:
                     cjson = simplejson.loads(olddata)
@@ -140,11 +142,11 @@ class DataStoreHandler(webapp.RequestHandler):
                     value = oldip + value
                     
                 # 保存
-                logging.info('Get Update Country IP Data "%s"' % country)
                 ccjson = simplejson.dumps(value, cls = ips.IPEncoder)
                 if not common.set_cache('%s' % country, ccjson, True):
                     logging.error('iplist cache failure. "%s"' % country)
                     return False
+                logging.debug('Get Update Country IP Data "%s"' % country)
 
             # 国名一覧をキャッシュに保存
             common.set_cache(common.countries_keyname % registry, iplist.keys(), True)

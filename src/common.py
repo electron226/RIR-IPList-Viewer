@@ -21,7 +21,7 @@ RIR = {
 # データベースに保存されるデータのキー名
 # "%s"部分は文字列に置き換えられる
 reghash_keyname = '%s_HASH' # 例: 'APNIC_HASH'
-countries_keyname = '%s_COUNTRIES' # 例 : 'APNIC_COUNTRIES'
+countries_keyname = '%s_COUNTRIES' # 例 : 'APNIC_COUNTRIES', 'ALL_COUNTRIES'
 
 # ----------------------------------------------------------------------------
 
@@ -45,7 +45,7 @@ def get_cache(name):
         logging.debug('Get cache failure. "%s"' % name)
         
         # データストア内のキャッシュから取得
-        logging.info('Get DataStore "IPStore" start. "%s"' % name)
+        logging.debug('Get DataStore "IPStore" start. "%s"' % name)
         query = db.GqlQuery("SELECT * FROM IPStore WHERE name = :1", name)
         record = query.get()
         if record:
@@ -77,7 +77,7 @@ def set_cache(name, value, usepickle):
         db.delete(query)
 
         # データストアにバックアップを保存
-        logging.info('Set DataStore "IPStore" start. "%s"' % name)
+        logging.debug('Set DataStore "IPStore" start. "%s"' % name)
         store = IPStore(name = name, 
                 cache = pickle.dumps(value, pickle.HIGHEST_PROTOCOL) if usepickle else value,
                 usepickle = usepickle)
@@ -88,32 +88,38 @@ def set_cache(name, value, usepickle):
         logging.error('Set cache failure. "%s"' % name)
         return False
 
+# 指定したキャッシュをmemcacheから削除し、データストアからも削除
+# name : キャッシュ名
+# fetch : 一回のループでいくつのデータストアのキャッシュを削除するか
+def delete_cache(name, fetch = 100):
+    logging.debug('Delete Cache Start. "%s' % name)
+    
+    query = db.GqlQuery("SELECT * FROM IPStore WHERE name = :1", name)
+    qfetch = query.fetch(fetch)
+    while len(qfetch) != 0:
+        db.delete(qfetch)
+        qfetch = query.fetch(fetch)
+        
+    # キャッシュの削除
+    memcache.delete('%s' % name) #@UndefinedVariable
+    
+    logging.debug('Delete Cache Success. "%s' % name)
+
 def Clear(registry):
     logging.info('DataStore "IPStore" cache and memcache clear start.')
 
-    # データストアキャッシュの削除
+    # 国名のキャッシュの削除
     countries_cache = get_cache(countries_keyname % registry)
     if countries_cache:
         for country in countries_cache:
-            query = db.GqlQuery("SELECT * FROM IPStore WHERE name = :1", country)
-            qfetch = query.fetch(100)
-            while len(qfetch) != 0:
-                db.delete(qfetch)
-                qfetch = query.fetch(100)
+            delete_cache(country)
 
-            # キャッシュの削除
-            memcache.delete('%s' % country) #@UndefinedVariable
-
-    # 国名のデータストアキャッシュの削除
-    query = db.GqlQuery("SELECT * FROM IPStore WHERE name = :1",
-            countries_keyname % registry)
-    qfetch = query.fetch(10)
-    while len(qfetch) != 0:
-        db.delete(qfetch)
-        qfetch = query.fetch(10)
-
-    # 国名のキャッシュの削除
-    memcache.delete(countries_keyname % registry) #@UndefinedVariable
+    # レジストリのキャッシュの削除
+    delete_cache(countries_keyname % registry, 10)
+    
+    # 全ての国名を保存したキャッシュを削除
+    delete_cache(countries_keyname % "ALL", 10)
+    
     logging.info('Cache clear end.')
 
 def ClearAll():
