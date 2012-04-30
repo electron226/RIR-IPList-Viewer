@@ -142,6 +142,7 @@ class DataStoreHandler(webapp.RequestHandler):
                         ip = ips.IPDecoder(ipobj)
                         oldip.append(ip)
                     value = oldip + value
+                value.sort(lambda x, y: cmp(x.start, y.start))
                     
                 # 保存
                 ccjson = simplejson.dumps(value, cls = ips.IPEncoder)
