@@ -20,6 +20,7 @@ RIR = {
 
 # データベースに保存されるデータのキー名
 # "%s"部分は文字列に置き換えられる
+registry_content = '%s_CONTENT' # 取得したデータ一時保存用
 reghash_keyname = '%s_HASH' # 例: 'APNIC_HASH'
 countries_keyname = '%s_COUNTRIES' # 例 : 'APNIC_COUNTRIES', 'ALL_COUNTRIES'
 

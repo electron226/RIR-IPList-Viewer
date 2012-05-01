@@ -58,7 +58,7 @@ class DataStoreHandler(webapp.RequestHandler):
         registry = self.request.get('registry')
 
         try:
-            cache = memcache.get(registry) #@UndefinedVariable
+            cache = memcache.get(common.registry_content % registry) #@UndefinedVariable
             data = cache['data']
             crc = cache['crc']
             content = zlib.decompress(data)
@@ -132,9 +132,10 @@ class DataStoreHandler(webapp.RequestHandler):
             # 保存
             for country, value in ipdict.items():
                 # 既に別のレジストリから追記されているデータに追記させる
-                logging.debug('Get Old Country IP Data "%s"' % country)
                 olddata = common.get_cache(country)
                 if olddata:
+                    logging.debug('Get Old Country IP Data "%s"' % country)
+                    
                     cjson = simplejson.loads(olddata)
                     oldip = []
                     for ipobj in cjson:

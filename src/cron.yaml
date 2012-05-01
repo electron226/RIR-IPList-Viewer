@@ -1,4 +1,4 @@
 cron:
 - description: daily summary job
   url: /cron
-  schedule: every day 00:10
+  schedule: every 2 hours synchronized
