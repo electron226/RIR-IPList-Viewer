@@ -23,9 +23,9 @@ record_rule = re.compile(r'([A-Z]{2})\|ipv4\|(\d+).(\d+).(\d+).(\d+)\|(\d+)')
 
 class DataStoreHandler(webapp.RequestHandler):
     # 最適化
-    # cciplist : 国名別に分けられたIP一覧のdict
-    def Combine(self, cciplist):
-        for values in cciplist.itervalues():
+    # ccipdict : 国名別に分けられたIP一覧のdict
+    def Combine(self, ccipdict):
+        for values in ccipdict.itervalues():
             SaveAddress = None
             for i in xrange(len(values) - 1):
                 IPList = values
@@ -47,11 +47,11 @@ class DataStoreHandler(webapp.RequestHandler):
                     SaveAddress = None
 
         # 不要部分削除
-        for values in cciplist.itervalues():
+        for values in ccipdict.itervalues():
             clear_list = [x for x in values if x.start == None]
             for clear in clear_list:
                 values.remove(clear)
-
+        
     def post(self):
         global reghash_keyname
         global header_rule
@@ -108,30 +108,33 @@ class DataStoreHandler(webapp.RequestHandler):
             common.Clear(registry)
 
             # 取得したIP一覧を最適化後に保存
-            iplist = {}
+            ipdict = {}
             for line in contents:
                 record = record_rule.search(line)
                 if record:
                     ipobj = ips.IP(record.group(2), record.group(3),
                             record.group(4), record.group(5), record.group(6))
                     try:
-                        iplist[record.group(1)].append(ipobj)
+                        ipdict[record.group(1)].append(ipobj)
                     except KeyError:
-                        iplist[record.group(1)] = []
-                        iplist[record.group(1)].append(ipobj)
+                        ipdict[record.group(1)] = []
+                        ipdict[record.group(1)].append(ipobj)
 
-            if len(iplist) == 0:
+            if len(ipdict) == 0:
                 return False
 
             # 最適化
+            # 時間がかかり、
+            # google.appengine.runtime.DeadlineExceededError
+            # になるので無効
             """
             logging.info('IPList Combine Start.')
-            self.Combine(iplist)
+            self.Combine(ipdict)
             logging.info('IPList Combine End.')
             """
-
+       
             # 保存
-            for country, value in iplist.items():
+            for country, value in ipdict.items():
                 # 既に別のレジストリから追記されているデータに追記させる
                 logging.debug('Get Old Country IP Data "%s"' % country)
                 olddata = common.get_cache(country)
@@ -145,14 +148,13 @@ class DataStoreHandler(webapp.RequestHandler):
                 value.sort(lambda x, y: cmp(x.start, y.start))
                     
                 # 保存
+                logging.info('Get Update Country IP Data Start. "%s"' % country)
                 ccjson = simplejson.dumps(value, cls = ips.IPEncoder)
-                if not common.set_cache('%s' % country, ccjson, True):
-                    logging.error('iplist cache failure. "%s"' % country)
-                    return False
-                logging.debug('Get Update Country IP Data "%s"' % country)
+                common.set_cache('%s' % country, ccjson, True)
+                logging.info('Get Update Country IP Data End. "%s"' % country)
 
             # 国名一覧をキャッシュに保存
-            common.set_cache(common.countries_keyname % registry, iplist.keys(), True)
+            common.set_cache(common.countries_keyname % registry, ipdict.keys(), True)
 
             # Update Hash
             common.set_cache(common.reghash_keyname % registry, newhash, False)

@@ -19,7 +19,7 @@ import os
 import logging
 
 # DJANGO
-os.environ[u'DJANGO_SETTINGS_MODULE'] = u'settings'
+os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
 
 from google.appengine.dist import use_library
 use_library('django', '1.2')
@@ -120,7 +120,13 @@ class MainHandler(webapp.RequestHandler):
         except TypeError:
             pass
         
-        template_values = { 'rir' : common.RIR.keys(),
+        exist_rir = []
+        for rir in common.RIR.keys():
+            rir_cache = common.get_cache(common.reghash_keyname % rir)
+            if rir_cache:
+                exist_rir.append(rir)
+        
+        template_values = { 'rir' : exist_rir,
                             'countries' : countries_split,
                             'list' : iptable
                             }

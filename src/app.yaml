@@ -13,6 +13,9 @@ handlers:
 - url: /datastore
   script: main.py
   login: admin
+- url: /combine
+  script: main.py
+  login: admin
 - url: /view
   script: main.py
 - url: .*

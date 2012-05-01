@@ -14,7 +14,7 @@ import common
 class IPList():
     # 取得したデータをzlibに圧縮してmemcacheに保存
     def handle_urlfetch(self, rpc, registry):
-        logging.info('Start "%s".' % registry)
+        logging.info('Download Start "%s".' % registry)
         try:
             result = rpc.get_result()
             if result.status_code != 200:
@@ -35,7 +35,7 @@ class IPList():
         return lambda: self.handle_urlfetch(rpc, registry)
 
     # 与えたURLのIP割当ファイルの更新を確認し、取得してデータベースに登録
-    # registries : 更新するregistryの一覧のマップ型
+    # registries : 更新するregistryの一覧のdict型
     def retrieve(self, registries):
         # urlfetchで非同期接続
         rpcs = []
@@ -48,11 +48,12 @@ class IPList():
         for rpc in rpcs:
             rpc.wait() # 完了まで待機、コールバック関数を呼び出す
 
-        # タスクキューで処理
+        # タスクで取得したデータを処理
         datastore_task = taskqueue.Queue('datastore')
-        for registry, url in registries.iteritems():
+        tasklist = []
+        for registry in registries.iterkeys():
             task = taskqueue.Task(
                     url = '/datastore', 
                     params = {'registry': registry})
-            datastore_task.add(task)
-        return
+            tasklist.append(task)
+        datastore_task.add(tasklist)

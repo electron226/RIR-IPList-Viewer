@@ -10,12 +10,12 @@ from google.appengine.ext import db
 # ----------------------------------------------------------------------------
 # 取得先
 RIR = {
-        'ICANN':'http://ftp.apnic.net/stats/iana/delegated-iana-latest',
+#        'ICANN':'http://ftp.apnic.net/stats/iana/delegated-iana-latest',
         'ARIN':'http://ftp.apnic.net/stats/arin/delegated-arin-latest',
-        'APNIC':'http://ftp.apnic.net/stats/apnic/delegated-apnic-latest',
-        'RIPE':'http://ftp.apnic.net/stats/ripe-ncc/delegated-ripencc-latest',
-        'LACNIC':'http://ftp.apnic.net/stats/lacnic/delegated-lacnic-latest',
-        'AFRINIC':'http://ftp.apnic.net/stats/afrinic/delegated-afrinic-latest'
+#        'APNIC':'http://ftp.apnic.net/stats/apnic/delegated-apnic-latest',
+#        'RIPE':'http://ftp.apnic.net/stats/ripe-ncc/delegated-ripencc-latest',
+#        'LACNIC':'http://ftp.apnic.net/stats/lacnic/delegated-lacnic-latest',
+#        'AFRINIC':'http://ftp.apnic.net/stats/afrinic/delegated-afrinic-latest'
         }
 
 # データベースに保存されるデータのキー名
@@ -39,10 +39,10 @@ def get_cache(name):
     # memcacheから取得
     cache = memcache.get(name) #@UndefinedVariable
     if cache:
-        logging.debug('Get cache success. "%s"' % name)
+        logging.debug('Get memcache success. "%s"' % name)
         return cache
     else:
-        logging.debug('Get cache failure. "%s"' % name)
+        logging.debug('Get memcache failure. "%s"' % name)
         
         # データストア内のキャッシュから取得
         logging.debug('Get DataStore "IPStore" start. "%s"' % name)
@@ -54,9 +54,9 @@ def get_cache(name):
             # memcache内に保存しなおしておく
             storecache = pickle.loads(record.cache) if record.usepickle else record.cache
             if memcache.set(name, storecache): #@UndefinedVariable
-                logging.debug('Set cache success. "%s"' % name)
+                logging.debug('Set memcache success. "%s"' % name)
             else:
-                logging.debug('Set cache failure. "%s"' % name)
+                logging.debug('Set memcache failure. "%s"' % name)
             return storecache
         else:
             logging.error('Get Datastore "IPStore" failure. "%s"' % name)
@@ -70,7 +70,7 @@ def get_cache(name):
 def set_cache(name, value, usepickle):
     # memcacheに保存
     if memcache.set(name, value): #@UndefinedVariable
-        logging.debug('Set cache success. "%s"' % name)
+        logging.debug('Set memcache success. "%s"' % name)
 
         # 古いデータストアのバックアップを削除
         query = db.GqlQuery("SELECT * FROM IPStore WHERE name = :1", name)
@@ -85,7 +85,7 @@ def set_cache(name, value, usepickle):
         logging.debug('Set Datastore "IPStore" success. "%s"' % name)
         return True
     else:
-        logging.error('Set cache failure. "%s"' % name)
+        logging.error('Set memcache failure. "%s"' % name)
         return False
 
 # 指定したキャッシュをmemcacheから削除し、データストアからも削除
@@ -106,7 +106,7 @@ def delete_cache(name, fetch = 100):
     logging.debug('Delete Cache Success. "%s' % name)
 
 def Clear(registry):
-    logging.info('DataStore "IPStore" cache and memcache clear start.')
+    logging.info('DataStore "IPStore" table and memcache clear start.')
 
     # 国名のキャッシュの削除
     countries_cache = get_cache(countries_keyname % registry)

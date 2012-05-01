@@ -16,7 +16,7 @@ class IP:
         self.start = (int(ip1) << 24) + (int(ip2) << 16) + (int(ip3) << 8) + int(ip4)
         self.value = int(value)
         self.end = self.start + self.value 
-
+    
     # 与えられた値をIPに変換
     def __convert__(self, value):
         return '%d.%d.%d.%d' % (
