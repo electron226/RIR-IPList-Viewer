@@ -26,31 +26,29 @@ class DataStoreHandler(webapp.RequestHandler):
     # ccipdict : 国名別に分けられたIP一覧のdict
     def Combine(self, ccipdict):
         for values in ccipdict.itervalues():
-            SaveAddress = None
-            for i in xrange(len(values) - 1):
+            if len(values) < 2:
+                continue
+            
+            i = 0
+            j = i + 1
+            while j < len(values):
                 IPList = values
 
                 # 現在のIP範囲の末尾と次のIP範囲の開始が同じ
-                if IPList[i].end == IPList[i + 1].start:
-                    if not SaveAddress:
-                        # まだ統合されていないIP範囲
-                        SaveAddress = i
-                        IPList[i].end = IPList[i + 1].end
-                        IPList[i + 1].start = None
-                        IPList[i].value += IPList[i + 1].value
-                    else:
-                        # 以前に統合したことがあるIP範囲
-                        IPList[SaveAddress].end = IPList[i + 1].end
-                        IPList[i + 1].start = None
-                        IPList[SaveAddress].value += IPList[i + 1].value
+                if IPList[i].end == IPList[j].start:
+                    IPList[i].end = IPList[j].end
+                    IPList[j].start = None
+                    IPList[i].value += IPList[j].value
+                    
+                    j += 1
                 else:
-                    SaveAddress = None
-
-        # 不要部分削除
-        for values in ccipdict.itervalues():
-            clear_list = [x for x in values if x.start == None]
-            for clear in clear_list:
-                values.remove(clear)
+                    del values[i + 1:j]
+                    i += 1
+                    j = i + 1
+            # 残った分も削除
+            # i + 1 == jの場合、
+            # 処理が行われず、参照する値が範囲外でも例外が発生しない
+            del values[i + 1:j]
         
     def post(self):
         global reghash_keyname
@@ -127,11 +125,9 @@ class DataStoreHandler(webapp.RequestHandler):
             # 時間がかかり、
             # google.appengine.runtime.DeadlineExceededError
             # になるので無効
-            """
             logging.info('IPList Combine Start.')
             self.Combine(ipdict)
             logging.info('IPList Combine End.')
-            """
        
             # 保存
             for country, value in ipdict.items():
