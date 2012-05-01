@@ -12,6 +12,8 @@ from google.appengine.api import memcache
 import common
 import ips
 
+import memcachelock
+
 # ハッシュ値確認用
 header_rule = re.compile(r'\d{1}\|[a-z]+\|\d+\|\d+\|\d+\|\d+\|[+-]?\d+')
 
@@ -131,24 +133,29 @@ class DataStoreHandler(webapp.RequestHandler):
        
             # 保存
             for country, value in ipdict.items():
-                # 既に別のレジストリから追記されているデータに追記させる
-                olddata = common.get_cache(country)
-                if olddata:
-                    logging.debug('Get Old Country IP Data "%s"' % country)
-                    
-                    cjson = simplejson.loads(olddata)
-                    oldip = []
-                    for ipobj in cjson:
-                        ip = ips.IPDecoder(ipobj)
-                        oldip.append(ip)
-                    value = oldip + value
-                value.sort(lambda x, y: cmp(x.start, y.start))
-                    
-                # 保存
-                logging.info('Get Update Country IP Data Start. "%s"' % country)
-                ccjson = simplejson.dumps(value, cls = ips.IPEncoder)
-                common.set_cache('%s' % country, ccjson, True)
-                logging.info('Get Update Country IP Data End. "%s"' % country)
+                # 国ごとに排他制御を行いつつ、更新
+                @memcachelock.runSynchronized(key = country, sleep_time = 1.0, retry_count = 10)
+                def update(country, value):
+                    # 既に別のレジストリから追記されているデータに追記させる
+                    olddata = common.get_cache(country)
+                    if olddata:
+                        logging.debug('Get Old Country IP Data "%s"' % country)
+                        
+                        cjson = simplejson.loads(olddata)
+                        oldip = []
+                        for ipobj in cjson:
+                            ip = ips.IPDecoder(ipobj)
+                            oldip.append(ip)
+                        value = oldip + value
+                    value.sort(lambda x, y: cmp(x.start, y.start))
+                        
+                    # 保存
+                    logging.info('Get Update Country IP Data Start. "%s"' % country)
+                    ccjson = simplejson.dumps(value, cls = ips.IPEncoder)
+                    common.set_cache('%s' % country, ccjson, True)
+                    logging.info('Get Update Country IP Data End. "%s"' % country)
+                
+                update(country, value)
 
             # 国名一覧をキャッシュに保存
             common.set_cache(common.countries_keyname % registry, ipdict.keys(), True)
