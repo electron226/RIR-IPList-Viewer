@@ -17,6 +17,7 @@
 #
 import os
 import logging
+import pickle
 
 # DJANGO
 os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
@@ -43,18 +44,18 @@ class CronHandler(webapp.RequestHandler):
 class ViewHandler(webapp.RequestHandler):
     def get(self):
         for registry in common.RIR.keys():
-            reghash = common.get_cache(common.reghash_keyname % registry)
+            reghash = common.ReadRecord(common.reghash_keyname % registry)
             self.response.out.write(
                     '<strong>%s | %s</strong><br />' % (registry, reghash))
 
             line = 0
-            countries_cache = common.get_cache(
+            countries_cache = common.ReadRecord(
                     common.countries_keyname % registry)
             if countries_cache == None:
                 continue
 
             for country in countries_cache:
-                cache = common.get_cache('%s' % country)
+                cache = common.ReadRecord('%s' % country)
                 if cache == None:
                     continue
                 ccjson = simplejson.loads(cache)
@@ -66,19 +67,18 @@ class ViewHandler(webapp.RequestHandler):
                     line += 1
             self.response.out.write('<br />')
 
-def GetCountry(countries):
+def GetCountries(countries):
     iptable = []
-    for country in countries:
-        data = common.get_cache(country)
-        if data:
-            cjson = simplejson.loads(data)
-            for ipobj in cjson:
-                ip = ips.IPDecoder(ipobj)
-                iptable.append(ip)
-    
-    if len(countries) > 1:
-        iptable.sort(key = lambda x : x.start)
-    
+    query = common.IPStore.gql("WHERE name IN :1", countries)
+    for record in query:
+        storecache = pickle.loads(record.cache) if record.usepickle else record.cache
+        cjson = simplejson.loads(storecache)
+        for ipobj in cjson:
+            ip = ips.IPDecoder(ipobj)
+            iptable.append(ip)
+
+    iptable.sort(key = lambda x : x.start)
+
     return iptable if len(iptable) != 0 else None
 
 class MainHandler(webapp.RequestHandler):
@@ -89,17 +89,18 @@ class MainHandler(webapp.RequestHandler):
             
             # 入力値の国名から割当IP一覧を取得
             countries = self.request.get_all('country')
-            iptable = GetCountry(countries)
-        
+            iptable = GetCountries(countries)
+            logging.info(iptable)
+       
             # キャッシュをした分割の国名データを取得
             logging.info('Get All Country Data')
-            all_countries_cache = common.get_cache(common.countries_keyname % "ALL")
+            all_countries_cache = common.ReadRecord(common.countries_keyname % "ALL")
             countries_split = all_countries_cache if all_countries_cache else []
             if not countries_split:
                 # 取得している全ての国名を取得
                 countries_list = []
                 for registry in common.RIR.keys():
-                    countries_list += common.get_cache(common.countries_keyname % registry)
+                    countries_list += common.ReadRecord(common.countries_keyname % registry)
                 countries_list = list(set(countries_list))
                 countries_list.sort()
                 
@@ -113,7 +114,7 @@ class MainHandler(webapp.RequestHandler):
                 countries_split.append(countries_list[first:])
                 
                 # 分割した国名リストをキャッシュ
-                if common.set_cache(common.countries_keyname % "ALL", countries_split, True):
+                if common.WriteRecord(common.countries_keyname % "ALL", countries_split, True):
                     logging.info("ALL Countries Cache Update.")
                 else:
                     logging.error('ALL Countries Save failure.')
@@ -122,7 +123,7 @@ class MainHandler(webapp.RequestHandler):
         
         exist_rir = []
         for rir in common.RIR.keys():
-            rir_cache = common.get_cache(common.reghash_keyname % rir)
+            rir_cache = common.ReadRecord(common.reghash_keyname % rir)
             if rir_cache:
                 exist_rir.append(rir)
         

@@ -10,12 +10,12 @@ from google.appengine.ext import db
 # ----------------------------------------------------------------------------
 # 取得先
 RIR = {
-        'ICANN':'http://ftp.apnic.net/stats/iana/delegated-iana-latest',
-        'ARIN':'http://ftp.apnic.net/stats/arin/delegated-arin-latest',
-        'APNIC':'http://ftp.apnic.net/stats/apnic/delegated-apnic-latest',
-        'RIPE':'http://ftp.apnic.net/stats/ripe-ncc/delegated-ripencc-latest',
+#        'ICANN':'http://ftp.apnic.net/stats/iana/delegated-iana-latest',
+#        'ARIN':'http://ftp.apnic.net/stats/arin/delegated-arin-latest',
+#        'APNIC':'http://ftp.apnic.net/stats/apnic/delegated-apnic-latest',
+#        'RIPE':'http://ftp.apnic.net/stats/ripe-ncc/delegated-ripencc-latest',
         'LACNIC':'http://ftp.apnic.net/stats/lacnic/delegated-lacnic-latest',
-        'AFRINIC':'http://ftp.apnic.net/stats/afrinic/delegated-afrinic-latest'
+#        'AFRINIC':'http://ftp.apnic.net/stats/afrinic/delegated-afrinic-latest'
         }
 
 # データベースに保存されるデータのキー名
@@ -28,12 +28,42 @@ countries_keyname = '%s_COUNTRIES' # 例 : 'APNIC_COUNTRIES', 'ALL_COUNTRIES'
 
 class IPStore(db.Model):
     name = db.StringProperty(required = True)
+#    registry = db.StringProperty(required = True)
     cache = db.BlobProperty()
     usepickle = db.BooleanProperty()
 
 def CRC32Check(string):
     return zlib.crc32(string) & 0xFFFFFFFF
-    
+
+def ReadRecord(name):
+    query = IPStore.gql("WHERE name = :1", name)
+    record = query.get()
+    if record:
+        storecache = pickle.loads(record.cache) \
+                            if record.usepickle else record.cache
+        return storecache
+    else:
+        return None
+
+def WriteRecord(name, value, usepickle):
+    query = IPStore.gql("WHERE name = :1", name)
+    db.delete(query)
+
+    store = IPStore(name = name,
+                    cache = pickle.dumps(value, pickle.HIGHEST_PROTOCOL) \
+                                            if usepickle else value, 
+                    usepickle = usepickle)
+    key = store.put()
+    return key
+
+def DeleteRecord(name, fetch_count = 100):
+    query = IPStore.gql("WHERE name = :1", name)
+    qfetch = query.fetch(fetch_count)
+    while len(qfetch) != 0:
+        db.delete(qfetch)
+        qfetch = query.fetch(fetch_count)
+
+"""
 # memcacheからキャッシュを取得し、存在しなければデータストアから取得
 # name : キャッシュ名
 def get_cache(name):
@@ -105,21 +135,22 @@ def delete_cache(name, fetch = 100):
     memcache.delete('%s' % name) #@UndefinedVariable
     
     logging.debug('Delete Cache Success. "%s' % name)
+"""
 
 def Clear(registry):
     logging.info('DataStore "IPStore" table and memcache clear start.')
 
     # 国名のキャッシュの削除
-    countries_cache = get_cache(countries_keyname % registry)
+    countries_cache = ReadRecord(countries_keyname % registry)
     if countries_cache:
         for country in countries_cache:
-            delete_cache(country)
+            DeleteRecord(country)
 
     # レジストリのキャッシュの削除
-    delete_cache(countries_keyname % registry, 10)
+    DeleteRecord(countries_keyname % registry, 10)
     
     # 全ての国名を保存したキャッシュを削除
-    delete_cache(countries_keyname % "ALL", 10)
+    DeleteRecord(countries_keyname % "ALL", 10)
     
     logging.info('Cache clear end.')
 
