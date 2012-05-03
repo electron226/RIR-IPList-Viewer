@@ -60,7 +60,7 @@ class DataStoreHandler(webapp.RequestHandler):
         registry = self.request.get('registry')
 
         try:
-            cache = memcache.get(common.registry_content % registry) #@UndefinedVariable
+            cache = memcache.get(common.REGISTRY_CONTENT % registry) #@UndefinedVariable
             data = cache['data']
             crc = cache['crc']
             content = zlib.decompress(data)
@@ -82,7 +82,8 @@ class DataStoreHandler(webapp.RequestHandler):
             return False
 
         # 前回のハッシュ値を取得
-        oldhash = common.ReadRecord(common.reghash_keyname % registry)
+        hashlist = common.ReadRecord(common.HASH_KEYNAME, registry)
+        oldhash = hashlist[0] if len(hashlist) > 0 else None
 
         # 前回のハッシュ値と今回のハッシュ値を比較
         newget = True
@@ -136,31 +137,18 @@ class DataStoreHandler(webapp.RequestHandler):
                 # 国ごとに排他制御を行いつつ、更新
                 @memcachelock.runSynchronized(key = country, sleep_time = 1.0, retry_count = 10)
                 def update(country, value):
-                    # 既に別のレジストリから追記されているデータに追記させる
-                    olddata = common.ReadRecord(country)
-                    if olddata:
-                        logging.debug('Get Old Country IP Data "%s"' % country)
-                        
-                        cjson = simplejson.loads(olddata)
-                        oldip = []
-                        for ipobj in cjson:
-                            ip = ips.IPDecoder(ipobj)
-                            oldip.append(ip)
-                        value = oldip + value
-                    value.sort(lambda x, y: cmp(x.start, y.start))
-                        
                     # 保存
                     logging.info('Get Update Country IP Data Start. "%s"' % country)
                     ccjson = simplejson.dumps(value, cls = ips.IPEncoder)
-                    common.WriteRecord('%s' % country, ccjson, True)
+                    common.WriteRecord(country, registry, ccjson, True)
                     logging.info('Get Update Country IP Data End. "%s"' % country)
                 
                 update(country, value)
 
             # 国名一覧をキャッシュに保存
-            common.WriteRecord(common.countries_keyname % registry, ipdict.keys(), True)
+            common.WriteRecord(common.COUNTRIES_KEYNAME, registry, ipdict.keys(), True)
 
             # Update Hash
-            common.WriteRecord(common.reghash_keyname % registry, newhash, False)
+            common.WriteRecord(common.HASH_KEYNAME, registry, newhash, False)
 
             logging.info('Update complete the "%s".' % registry)

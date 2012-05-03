@@ -10,58 +10,60 @@ from google.appengine.ext import db
 # ----------------------------------------------------------------------------
 # 取得先
 RIR = {
-#        'ICANN':'http://ftp.apnic.net/stats/iana/delegated-iana-latest',
-#        'ARIN':'http://ftp.apnic.net/stats/arin/delegated-arin-latest',
-#        'APNIC':'http://ftp.apnic.net/stats/apnic/delegated-apnic-latest',
-#        'RIPE':'http://ftp.apnic.net/stats/ripe-ncc/delegated-ripencc-latest',
+        'ICANN':'http://ftp.apnic.net/stats/iana/delegated-iana-latest',
+        'ARIN':'http://ftp.apnic.net/stats/arin/delegated-arin-latest',
+        'APNIC':'http://ftp.apnic.net/stats/apnic/delegated-apnic-latest',
+        'RIPE':'http://ftp.apnic.net/stats/ripe-ncc/delegated-ripencc-latest',
         'LACNIC':'http://ftp.apnic.net/stats/lacnic/delegated-lacnic-latest',
-#        'AFRINIC':'http://ftp.apnic.net/stats/afrinic/delegated-afrinic-latest'
+        'AFRINIC':'http://ftp.apnic.net/stats/afrinic/delegated-afrinic-latest'
         }
 
 # データベースに保存されるデータのキー名
 # "%s"部分は文字列に置き換えられる
-registry_content = '%s_CONTENT' # 取得したデータ一時保存用
-reghash_keyname = '%s_HASH' # 例: 'APNIC_HASH'
-countries_keyname = '%s_COUNTRIES' # 例 : 'APNIC_COUNTRIES', 'ALL_COUNTRIES'
+REGISTRY_CONTENT = '%s_CONTENT' # 取得したデータの一時保存用(memcache用)
+
+HASH_KEYNAME = 'HASH'
+COUNTRIES_KEYNAME = 'COUNTRIES'
 
 # ----------------------------------------------------------------------------
 
 class IPStore(db.Model):
     name = db.StringProperty(required = True)
-#    registry = db.StringProperty(required = True)
+    registry = db.StringProperty(required = True)
     cache = db.BlobProperty()
     usepickle = db.BooleanProperty()
 
 def CRC32Check(string):
     return zlib.crc32(string) & 0xFFFFFFFF
 
-def ReadRecord(name):
-    query = IPStore.gql("WHERE name = :1", name)
-    record = query.get()
-    if record:
-        storecache = pickle.loads(record.cache) \
-                            if record.usepickle else record.cache
-        return storecache
-    else:
-        return None
+def ReadRecord(name, registry):
+    cache_list = []
+    query = IPStore.gql("WHERE name = :1 AND registry = :2", name, registry)
+    for instance in query:
+        cache = pickle.loads(instance.cache) \
+                            if instance.usepickle else instance.cache
+        cache_list.append(cache)
 
-def WriteRecord(name, value, usepickle):
-    query = IPStore.gql("WHERE name = :1", name)
+    return cache_list
+
+def WriteRecord(name, registry, value, usepickle):
+    query = IPStore.gql("WHERE name = :1 AND registry = :2", name, registry)
     db.delete(query)
 
     store = IPStore(name = name,
+                    registry = registry, 
                     cache = pickle.dumps(value, pickle.HIGHEST_PROTOCOL) \
                                             if usepickle else value, 
                     usepickle = usepickle)
     key = store.put()
     return key
 
-def DeleteRecord(name, fetch_count = 100):
-    query = IPStore.gql("WHERE name = :1", name)
-    qfetch = query.fetch(fetch_count)
+def DeleteRecord(name, registry):
+    query = IPStore.gql("WHERE name = :1 AND registry = :2", name, registry)
+    qfetch = query.fetch(100)
     while len(qfetch) != 0:
         db.delete(qfetch)
-        qfetch = query.fetch(fetch_count)
+        qfetch = query.fetch(100)
 
 """
 # memcacheからキャッシュを取得し、存在しなければデータストアから取得
@@ -140,18 +142,13 @@ def delete_cache(name, fetch = 100):
 def Clear(registry):
     logging.info('DataStore "IPStore" table and memcache clear start.')
 
-    # 国名のキャッシュの削除
-    countries_cache = ReadRecord(countries_keyname % registry)
-    if countries_cache:
-        for country in countries_cache:
-            DeleteRecord(country)
+    # 特定のレジストリのデータ消去
+    query = IPStore.gql("WHERE registry = :1", registry)
+    qfetch = query.fetch(100)
+    while len(qfetch) != 0:
+        db.delete(qfetch)
+        qfetch = query.fetch(100)
 
-    # レジストリのキャッシュの削除
-    DeleteRecord(countries_keyname % registry, 10)
-    
-    # 全ての国名を保存したキャッシュを削除
-    DeleteRecord(countries_keyname % "ALL", 10)
-    
     logging.info('Cache clear end.')
 
 def ClearAll():

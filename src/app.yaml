@@ -16,9 +16,6 @@ handlers:
 - url: /combine
   script: main.py
   login: admin
-- url: /view
-  script: main.py
-  login: admin
 - url: .*
   script: main.py
   login: admin

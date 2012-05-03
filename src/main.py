@@ -41,32 +41,6 @@ class CronHandler(webapp.RequestHandler):
         ipl = iplist.IPList()
         ipl.retrieve(common.RIR)
 
-class ViewHandler(webapp.RequestHandler):
-    def get(self):
-        for registry in common.RIR.keys():
-            reghash = common.ReadRecord(common.reghash_keyname % registry)
-            self.response.out.write(
-                    '<strong>%s | %s</strong><br />' % (registry, reghash))
-
-            line = 0
-            countries_cache = common.ReadRecord(
-                    common.countries_keyname % registry)
-            if countries_cache == None:
-                continue
-
-            for country in countries_cache:
-                cache = common.ReadRecord('%s' % country)
-                if cache == None:
-                    continue
-                ccjson = simplejson.loads(cache)
-
-                for ipobj in ccjson:
-                    ip = ips.IPDecoder(ipobj)
-                    self.response.out.write('%d:\t%s\t%d\t%s<br />'
-                            % (line, ip.StartIP(), ip.value, country))
-                    line += 1
-            self.response.out.write('<br />')
-
 def GetCountries(countries):
     iptable = []
     query = common.IPStore.gql("WHERE name IN :1", countries)
@@ -90,42 +64,38 @@ class MainHandler(webapp.RequestHandler):
             # 入力値の国名から割当IP一覧を取得
             countries = self.request.get_all('country')
             iptable = GetCountries(countries)
-            logging.info(iptable)
        
-            # キャッシュをした分割の国名データを取得
+            # 全てのレジストリの国名データを取得
             logging.info('Get All Country Data')
-            all_countries_cache = common.ReadRecord(common.countries_keyname % "ALL")
-            countries_split = all_countries_cache if all_countries_cache else []
-            if not countries_split:
-                # 取得している全ての国名を取得
-                countries_list = []
-                for registry in common.RIR.keys():
-                    countries_list += common.ReadRecord(common.countries_keyname % registry)
-                countries_list = list(set(countries_list))
-                countries_list.sort()
-                
-                # 国名の一文字目を基準として分割
+
+            all_countries_cache = []
+            query = common.IPStore.gql("WHERE name = :1", common.COUNTRIES_KEYNAME)
+            for instance in query:
+                cclist = pickle.loads(instance.cache) \
+                                    if instance.usepickle else instance.cache
+                all_countries_cache += cclist
+            all_countries_cache = list(set(all_countries_cache))
+            all_countries_cache.sort()
+
+            # 国名の一文字目を基準として分割
+            countries_split = []
+            if all_countries_cache:
                 first = 0
-                if countries_list:
-                    for i in xrange(1, len(countries_list)):
-                        if countries_list[first][0] != countries_list[i][0]:
-                            countries_split.append(countries_list[first:i])
-                            first = i
-                countries_split.append(countries_list[first:])
-                
-                # 分割した国名リストをキャッシュ
-                if common.WriteRecord(common.countries_keyname % "ALL", countries_split, True):
-                    logging.info("ALL Countries Cache Update.")
-                else:
-                    logging.error('ALL Countries Save failure.')
+                for i in xrange(1, len(all_countries_cache)):
+                    if all_countries_cache[first][0] != all_countries_cache[i][0]:
+                        countries_split.append(all_countries_cache[first:i])
+                        first = i
+                countries_split.append(all_countries_cache[first:])
         except TypeError:
             pass
         
         exist_rir = []
-        for rir in common.RIR.keys():
-            rir_cache = common.ReadRecord(common.reghash_keyname % rir)
-            if rir_cache:
-                exist_rir.append(rir)
+        for reg in common.RIR.keys():
+            rir = common.IPStore.gql(
+                    "WHERE name = :1 AND registry = :2", common.HASH_KEYNAME, reg)
+            rirhash = rir.get()
+            if rirhash:
+                exist_rir.append(reg)
         
         template_values = { 'rir' : exist_rir,
                             'countries' : countries_split,
@@ -138,7 +108,6 @@ def main():
     application = webapp.WSGIApplication([
         ('/', MainHandler),
         ('/cron', CronHandler), 
-        ('/view', ViewHandler), 
         ('/datastore', datastore.DataStoreHandler), 
         ], debug=True)
     util.run_wsgi_app(application)

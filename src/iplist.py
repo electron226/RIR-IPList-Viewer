@@ -24,7 +24,7 @@ class IPList():
             cache_data = {
                           'data': zlib.compress(result.content),
                           'crc': common.CRC32Check(result.content) }
-            if not memcache.set(common.registry_content % registry, cache_data): #@UndefinedVariable
+            if not memcache.set(common.REGISTRY_CONTENT % registry, cache_data): #@UndefinedVariable
                 logging.error('Set , %s content failure.' % registry)
         except urlfetch.DownloadError:
             logging.error('Get "%s" failure.' % registry)
