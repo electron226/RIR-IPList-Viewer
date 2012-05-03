@@ -58,34 +58,45 @@ def GetCountries(countries):
 class MainHandler(webapp.RequestHandler):
     def get(self):
         try:
-            # 入力された取得先の一覧を取得
-            registry = self.request.get_all('registry')
-            
-            # 入力値の国名から割当IP一覧を取得
-            countries = self.request.get_all('country')
-            iptable = GetCountries(countries)
-       
-            # 全てのレジストリの国名データを取得
-            logging.info('Get All Country Data')
-
-            all_countries_cache = []
-            query = common.IPStore.gql("WHERE name = :1", common.COUNTRIES_KEYNAME)
-            for instance in query:
-                cclist = pickle.loads(instance.cache) \
-                                    if instance.usepickle else instance.cache
-                all_countries_cache += cclist
-            all_countries_cache = list(set(all_countries_cache))
-            all_countries_cache.sort()
-
-            # 国名の一文字目を基準として分割
             countries_split = []
-            if all_countries_cache:
-                first = 0
-                for i in xrange(1, len(all_countries_cache)):
-                    if all_countries_cache[first][0] != all_countries_cache[i][0]:
-                        countries_split.append(all_countries_cache[first:i])
-                        first = i
-                countries_split.append(all_countries_cache[first:])
+            iptable =[]
+            
+            registry = self.request.get_all('registry')
+            if registry:
+                # 入力された取得先の一覧を取得
+                query = common.IPStore.gql("WHERE registry IN :1", registry)
+                for instance in query:
+                    for record in query:
+                        storecache = pickle.loads(record.cache) if record.usepickle else record.cache
+                        cjson = simplejson.loads(storecache)
+                        for ipobj in cjson:
+                            ip = ips.IPDecoder(ipobj)
+                            iptable.append(ip)
+            else:
+                # 入力値の国名から割当IP一覧を取得
+                countries = self.request.get_all('country')
+                iptable = GetCountries(countries)
+           
+                # 全てのレジストリの国名データを取得
+                logging.info('Get All Country Data')
+
+                all_countries_cache = []
+                query = common.IPStore.gql("WHERE name = :1", common.COUNTRIES_KEYNAME)
+                for instance in query:
+                    cclist = pickle.loads(instance.cache) \
+                                        if instance.usepickle else instance.cache
+                    all_countries_cache += cclist
+                all_countries_cache = list(set(all_countries_cache))
+                all_countries_cache.sort()
+
+                # 国名の一文字目を基準として分割
+                if all_countries_cache:
+                    first = 0
+                    for i in xrange(1, len(all_countries_cache)):
+                        if all_countries_cache[first][0] != all_countries_cache[i][0]:
+                            countries_split.append(all_countries_cache[first:i])
+                            first = i
+                    countries_split.append(all_countries_cache[first:])
         except TypeError:
             pass
         
