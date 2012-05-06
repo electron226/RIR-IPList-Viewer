@@ -46,10 +46,7 @@ def ReadRecord(name, registry):
 
     return cache_list
 
-def WriteRecord(name, registry, value, usepickle):
-    query = IPStore.gql("WHERE name = :1 AND registry = :2", name, registry)
-    db.delete(query)
-
+def tWrite(name, registry, value, usepickle):
     store = IPStore(name = name,
                     registry = registry, 
                     cache = pickle.dumps(value, pickle.HIGHEST_PROTOCOL) \
@@ -58,29 +55,31 @@ def WriteRecord(name, registry, value, usepickle):
     key = store.put()
     return key
 
+def WriteRecord(name, registry, value, usepickle):
+    DeleteRecord(name, registry)
+
+    key = db.run_in_transaction(tWrite, name, registry, value, usepickle)
+    return key
+
+def tClean(query):
+    query = db.get(query)
+    db.delete(query)
+
 def DeleteRecord(name, registry):
     query = IPStore.gql("WHERE name = :1 AND registry = :2", name, registry)
     qfetch = query.fetch(100)
     while len(qfetch) != 0:
-        db.delete(qfetch)
+        db.run_in_transaction(tClean, query)
         qfetch = query.fetch(100)
 
 def Clear(registry):
-    logging.info('DataStore "IPStore" table and memcache clear start.')
-
-    # 特定のレジストリのデータ消去
     query = IPStore.gql("WHERE registry = :1", registry)
     qfetch = query.fetch(100)
     while len(qfetch) != 0:
-        db.delete(qfetch)
+        db.run_in_transaction(tClean, query)
         qfetch = query.fetch(100)
 
-    logging.info('Cache clear end.')
-
 def ClearAll():
-    logging.info('Cache all clear start.')
     if not memcache.flush_all(): #@UndefinedVariable
         logging.error('memcache flush_all failure.')
-    db.delete(IPStore.all())
-    logging.info('Cache all clear end.')
-    
+    db.run_in_transaction(tClean, IPStore.add())

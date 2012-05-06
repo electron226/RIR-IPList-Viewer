@@ -57,12 +57,16 @@ def GetCountries(countries):
 
 class MainHandler(webapp.RequestHandler):
     def get(self):
+        iptable = []
         registry = self.request.get_all('registry')
         if registry:
             # 入力された取得先の一覧を取得
-            iptable = []
             query = common.IPStore.gql("WHERE registry IN :1", registry)
             for record in query:
+                # 国要素以外スキップ
+                if len(record.name) != 2:
+                    continue
+
                 storecache = pickle.loads(record.cache) if record.usepickle else record.cache
                 cjson = simplejson.loads(storecache)
                 for ipobj in cjson:

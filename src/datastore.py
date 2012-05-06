@@ -7,6 +7,7 @@ import logging
 
 from django.utils import simplejson
 from google.appengine.ext import webapp
+from google.appengine.ext import db
 from google.appengine.api import memcache
 
 import common
@@ -106,7 +107,9 @@ class DataStoreHandler(webapp.RequestHandler):
             logging.info('Start update the "%s".' % registry)
 
             # 一致するレジストリのキャッシュを削除
-            common.Clear(registry)
+            logging.debug('Old IPList Clear Start. "%s".' % registry)
+            common.Clear(registry);
+            logging.debug('Old IPList Clear Start "%s".' % registry)
 
             # 取得したIP一覧を最適化後に保存
             ipdict = {}
@@ -125,25 +128,16 @@ class DataStoreHandler(webapp.RequestHandler):
                 return False
 
             # 最適化
-            # 時間がかかり、
-            # google.appengine.runtime.DeadlineExceededError
-            # になるので無効
             logging.info('IPList Combine Start.')
             self.Combine(ipdict)
             logging.info('IPList Combine End.')
        
             # 保存
+            logging.info('Get Update IPList Start. "%s"' % registry)
+
             for country, value in ipdict.items():
-                # 国ごとに排他制御を行いつつ、更新
-                @memcachelock.runSynchronized(key = country, sleep_time = 1.0, retry_count = 10)
-                def update(country, value):
-                    # 保存
-                    logging.info('Get Update Country IP Data Start. "%s"' % country)
-                    ccjson = simplejson.dumps(value, cls = ips.IPEncoder)
-                    common.WriteRecord(country, registry, ccjson, True)
-                    logging.info('Get Update Country IP Data End. "%s"' % country)
-                
-                update(country, value)
+                ccjson = simplejson.dumps(value, cls = ips.IPEncoder)
+                common.WriteRecord(country, registry, ccjson, True)
 
             # 国名一覧をキャッシュに保存
             common.WriteRecord(common.COUNTRIES_KEYNAME, registry, ipdict.keys(), True)
@@ -151,4 +145,5 @@ class DataStoreHandler(webapp.RequestHandler):
             # Update Hash
             common.WriteRecord(common.HASH_KEYNAME, registry, newhash, False)
 
+            logging.info('Get Update IPList End. "%s"' % registry)
             logging.info('Update complete the "%s".' % registry)
