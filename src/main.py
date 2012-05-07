@@ -90,6 +90,7 @@ class MainHandler(webapp.RequestHandler):
         all_countries_cache.sort()
 
         # 国名の一文字目を基準として分割
+        """
         countries_split = []
         if all_countries_cache:
             first = 0
@@ -98,6 +99,7 @@ class MainHandler(webapp.RequestHandler):
                     countries_split.append(all_countries_cache[first:i])
                     first = i
             countries_split.append(all_countries_cache[first:])
+        """
         
         exist_rir = []
         for reg in common.RIR.keys():
@@ -108,7 +110,7 @@ class MainHandler(webapp.RequestHandler):
                 exist_rir.append(reg)
         
         template_values = { 'rir' : exist_rir,
-                            'countries' : countries_split,
+                            'countries' : all_countries_cache,
                             'list' : iptable
                             }
         path = os.path.join(os.path.dirname(__file__), 'index.html')

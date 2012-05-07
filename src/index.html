@@ -1,64 +1,122 @@
-<!DOCTYPE html>
-<html lang="ja">
+﻿<!DOCTYPE html>
+<html lang="jp">
 <head>
-<meta charset="utf-8" />
-<title>まだ工事中</title>
-<!--[if lte IE 8]>
-<script src="http://remysharp.com/downloads/html5.js" type="text/javascript"></script>
-<![endif]-->
-
-<style type="text/css">
-<!--
--->
-</style>
+    <meta charset="UTF-8">
+    <meta name="description" content="APNICなどからIP一覧を取得、表示">
+    <meta name="keywords" content="IPv4, IPv6, APNIC, ARIN, LACNIC, AFRINIC, ICNAA, RIPE">
+    <title>IP Viewer</title>
+    <!-- <link rel="shortcut icon" href="favicon.ico"> -->
+    <link type="text/css" rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+    <link type="text/css" rel="stylesheet" href="bootstrap/css/bootstrap-responsive.min.css">
+    <link media="all" rel="stylesheet/less" href="less/style.less" type="text/css">
+</head>
 
 <body>
+    <div class="navbar navbar-fixed-top">
+        <div class="navbar-inner">
+            <div class="container">
+                <!-- ナビバー -->
+                <a class="brand" href="#">
+                    IP View
+                </a>
+                <ul class="nav">
+                	<li><a href="">TOP</a></li>
+                	<li><a href="">使い方</a></li>
+                	<li><a href="">カスタマイズ出力</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
 
-<header>
-<h2>IP Viewer</h2>
-</header>
+    <div class="container" style="padding-top: 60px;">
+        <div id="main" class="row">
+        	<div id="sidebar" class="span4">
+                <form action="/" method="get" class="form-horizontal">
+                    <div id="registry" class="control-group">
+                        <label class="control-label">レジストリ</label>
+                        <div class="controls">
+                                <label class="checkbox"><input type="checkbox" name="registry" class="reg_all">ALL</label>
+                                <hr>
+                            {% for registry in rir %}
+                                <label class="checkbox"><input type="checkbox" name="registry" value="{{ registry }}">{{ registry|escape }}</label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary">Save Changes</button>
+                        <button class="btn reg_clear">Clear</button>
+                    </div>
+                </form>
 
-<section>
-<form action="/" method="get">
+                <form action="/" method="get" class="form-horizontal">
+                    <div id="country" class="control-group">
+                        <label class="control-label">国名</label>
+                        <div class="controls">
+                                <label class="checkbox"><input type="checkbox" name="country" class="cc_all">ALL</label>
+                                <hr>
+                            {% for cc in countries %}
+                                <label class="checkbox"><input type="checkbox" name="country" value="{{ cc }}">{{ cc|escape }}</label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary">Save Changes</button>
+                        <button class="btn cc_clear">Clear</button>
+                    </div>
+                </form>
+            </div>
+        	<div id="viewbar" class="span8">
+                <table class="table table.striped">
+                	<thead>
+                		<tr>
+                			<th class="span2">レジストリ</th>
+                			<th class="span2">国名</th>
+                			<th class="span3">IP開始位置</th>
+                			<th class="span3">IP終了位置</th>
+                		</tr>
+                	</thead>
+                	<tbody>
+                        {% for ipobj in list %}
+                        <tr>
+                        	<td></td>
+                        	<td></td>
+                        	<td>{{ ipobj.StartIP|escape }}</td>
+                        	<td>{{ ipobj.EndIP|escape }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-<article>
-<p>取得先レジストリ</p>
-<p>
-{% for registry in rir %}
-    <input type="checkbox" name="registry" value="{{ registry }}">{{ registry }}
-{% endfor %}
-</p>
-</article>
-
-<article>
-<p>国名</p>
-{% for country in countries %}
-    {% for cc in country %}
-        <input type="checkbox" name="country" value="{{ cc }}">{{ cc }}
-    {% endfor %}
-    <br>
-{% endfor %}
-</article>
-
-<article>
-<p>出力形式</p>
-<p><input type="text" name="style"></p>
-<!--<p><input type="text" name="style" size="60" required></p>-->
-</article>
-
-<p><input type="submit" value="送信"></p>
-</form>
-</section>
-
-<section>
-<p>出力結果</p>
-{% for ipobj in list %}
-        {{ ipobj.StartIP }} {{ ipobj.EndIP }}<br>
-{% endfor %}
-</section>
-
-<footer>
-</footer>
-
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js" type="text/javascript"></script>
+    <script src="bootstrap/js/bootstrap.min.js" type="text/javascript"></script>
+    <script src="less/less-1.2.0.min.js" type="text/javascript"></script>
+    <!--[if lte IE 8]>
+    <script src="http://remysharp.com/downloads/html5.js" type="text/javascript"></script>
+    <![endif]-->
+    <script type="text/javascript">
+        $('.reg_all').click(function() {
+                    if(this.checked) {
+                        $('#registry input').attr('checked', 'checked');
+                    } else {
+                        $('#registry input').removeAttr('checked');
+                    }
+                });
+        $('.cc_all').click(function() {
+                    if(this.checked) {
+                        $('#country input').attr('checked', 'checked');
+                    } else {
+                        $('#country input').removeAttr('checked');
+                    }
+                });
+        $('.reg_clear').click(function() {
+                    $('#registry input').removeAttr('checked');
+                });
+        $('.cc_clear').click(function() {
+                    $('#country input').removeAttr('checked');
+                });
+    </script>
 </body>
 </html>

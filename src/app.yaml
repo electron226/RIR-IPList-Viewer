@@ -16,6 +16,14 @@ handlers:
 - url: /combine
   script: main.py
   login: admin
+- url: /bootstrap
+  static_dir: bootstrap
+- url: /css
+  static_dir: css
+- url: /js
+  static_dir: js
+- url: /less
+  static_dir: less
 - url: .*
   script: main.py
   login: admin

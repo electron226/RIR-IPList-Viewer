@@ -13,8 +13,6 @@ from google.appengine.api import memcache
 import common
 import ips
 
-import memcachelock
-
 # ハッシュ値確認用
 header_rule = re.compile(r'\d{1}\|[a-z]+\|\d+\|\d+\|\d+\|\d+\|[+-]?\d+')
 
