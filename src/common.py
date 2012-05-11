@@ -10,11 +10,11 @@ from google.appengine.ext import db
 # ----------------------------------------------------------------------------
 # 取得先
 RIR = {
-        'ICANN':'http://ftp.apnic.net/stats/iana/delegated-iana-latest',
-        'ARIN':'http://ftp.apnic.net/stats/arin/delegated-arin-latest',
-        'APNIC':'http://ftp.apnic.net/stats/apnic/delegated-apnic-latest',
-        'RIPE':'http://ftp.apnic.net/stats/ripe-ncc/delegated-ripencc-latest',
-        'LACNIC':'http://ftp.apnic.net/stats/lacnic/delegated-lacnic-latest',
+#        'ICANN':'http://ftp.apnic.net/stats/iana/delegated-iana-latest',
+#        'ARIN':'http://ftp.apnic.net/stats/arin/delegated-arin-latest',
+#        'APNIC':'http://ftp.apnic.net/stats/apnic/delegated-apnic-latest',
+#        'RIPE':'http://ftp.apnic.net/stats/ripe-ncc/delegated-ripencc-latest',
+#        'LACNIC':'http://ftp.apnic.net/stats/lacnic/delegated-lacnic-latest',
         'AFRINIC':'http://ftp.apnic.net/stats/afrinic/delegated-afrinic-latest'
         }
 
@@ -27,14 +27,16 @@ COUNTRIES_KEYNAME = 'COUNTRIES'
 
 # ----------------------------------------------------------------------------
 
+def CRC32Check(string):
+    return zlib.crc32(string) & 0xFFFFFFFF
+
+# ----------------------------------------------------------------------------
+
 class IPStore(db.Model):
     name = db.StringProperty(required = True)
     registry = db.StringProperty(required = True)
     cache = db.BlobProperty()
     usepickle = db.BooleanProperty()
-
-def CRC32Check(string):
-    return zlib.crc32(string) & 0xFFFFFFFF
 
 def ReadRecord(name, registry):
     cache_list = []

@@ -13,7 +13,7 @@ handlers:
 - url: /datastore
   script: main.py
   login: admin
-- url: /combine
+- url: /json
   script: main.py
   login: admin
 - url: /bootstrap
@@ -24,6 +24,8 @@ handlers:
   static_dir: js
 - url: /less
   static_dir: less
+- url: /ajax
+  static_dir: ajax
 - url: .*
   script: main.py
   login: admin
