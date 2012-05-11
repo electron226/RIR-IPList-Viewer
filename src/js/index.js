@@ -48,23 +48,15 @@
 
   UpdateTable = function(data) {
     return $.getJSON('/json', data, function(json) {
-      var central, count, i, str, _i;
+      var count, i, str, _i;
       jsondata = json;
       ShowTable(0, view_count);
-      central = true;
       count = Math.ceil(json.length / view_count);
-      str = '<li><a href="#">&lt;&lt;</a></li>';
+      str = '<li><a href="#" onclick="GetViewTable(1)">&#171;</a></li>';
       for (i = _i = 1; 1 <= count ? _i <= count : _i >= count; i = 1 <= count ? ++_i : --_i) {
-        if (i > 2 && i + 1 < count) {
-          if (central) {
-            str += '<li class="disabled"><a href="#">...</a></li>';
-            central = false;
-          }
-        } else {
-          str += '<li><a href="#" onclick="GetViewTable(' + i + ')">' + i + '</a></li>';
-        }
+        str += '<li><a href="#" onclick="GetViewTable(' + i + ')">' + i + '</a></li>';
       }
-      str += '<li><a href="#">&gt;&gt;</a></li>';
+      str += '<li><a href="#" onclick="GetViewTable(' + count + ')">&#187;</a></li>';
       $("#view_pages ul").html(str);
       return $('#view_pages li:lt(2)').attr('class', 'active');
     });
