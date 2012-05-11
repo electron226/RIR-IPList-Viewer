@@ -2,13 +2,19 @@
 (function() {
   ﻿;
 
-  var UpdateTable;
+  var ShowTable, UpdateTable, jsondata, root, view_count;
+
+  view_count = 100;
+
+  root = typeof exports !== "undefined" && exports !== null ? exports : this;
+
+  jsondata = [];
 
   $('#registry_save').click(function() {
     var checks, num;
     checks = (function() {
       var _i, _len, _ref, _results;
-      _ref = $('#registry .reg:checked');
+      _ref = $('#registry .rir:checked');
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         num = _ref[_i];
@@ -19,7 +25,7 @@
     UpdateTable({
       'registry': checks.join(',')
     });
-    return $('.cc_clear').click();
+    return $('#country_clear').click();
   });
 
   $('#country_save').click(function() {
@@ -37,40 +43,67 @@
     UpdateTable({
       'country': checks.join(',')
     });
-    return $('.reg_clear').click();
+    return $('#registry_clear').click();
   });
 
   UpdateTable = function(data) {
     return $.getJSON('/json', data, function(json) {
-      var count, i, str, _i, _j, _len;
-      str = "";
-      for (_i = 0, _len = json.length; _i < _len; _i++) {
-        i = json[_i];
-        str += "<tr>";
-        str += "<td>" + escape(i.registry) + "</td>";
-        str += "<td>" + escape(i.country) + "</td>";
-        str += "<td>" + escape(i.StartIP) + "</td>";
-        str += "<td>" + escape(i.EndIP) + "</td>";
-        str += "</tr>";
+      var central, count, i, str, _i;
+      jsondata = json;
+      ShowTable(0, view_count);
+      central = true;
+      count = Math.ceil(json.length / view_count);
+      str = '<li><a href="#">&lt;&lt;</a></li>';
+      for (i = _i = 1; 1 <= count ? _i <= count : _i >= count; i = 1 <= count ? ++_i : --_i) {
+        if (i > 2 && i + 1 < count) {
+          if (central) {
+            str += '<li class="disabled"><a href="#">...</a></li>';
+            central = false;
+          }
+        } else {
+          str += '<li><a href="#" onclick="GetViewTable(' + i + ')">' + i + '</a></li>';
+        }
       }
-      $("#viewbar tbody").html(str);
-      count = Math.ceil(json.length / 100.0);
-      str = "";
-      for (i = _j = 1; 1 <= count ? _j <= count : _j >= count; i = 1 <= count ? ++_j : --_j) {
-        str += '<li><a href="#">' + i + '</a></li>';
-      }
+      str += '<li><a href="#">&gt;&gt;</a></li>';
       $("#view_pages ul").html(str);
-      return $('#view_pages li:first').attr('class', 'active');
+      return $('#view_pages li:lt(2)').attr('class', 'active');
     });
   };
 
-  $('#country .cc').click(function() {
-    if ($('.cc_all').attr('checked')) {
-      return $('.cc_all').removeAttr('checked');
+  ShowTable = function(first, last) {
+    var i, j, str, _i;
+    str = "";
+    j = 0;
+    for (i = _i = first; first <= last ? _i <= last : _i >= last; i = first <= last ? ++_i : --_i) {
+      if (jsondata[i] != null) {
+        str += "<tr>";
+        str += "<td>" + escape(jsondata[i].registry) + "</td>";
+        str += "<td>" + escape(jsondata[i].country) + "</td>";
+        str += "<td>" + escape(jsondata[i].StartIP) + "</td>";
+        str += "<td>" + escape(jsondata[i].EndIP) + "</td>";
+        str += "</tr>";
+      }
+    }
+    return $("#viewbar tbody").html(str);
+  };
+
+  root.GetViewTable = function(point) {
+    return ShowTable((point - 1) * view_count, point * view_count);
+  };
+
+  $('#registry .rir').click(function() {
+    if ($('#registry_all').attr('checked')) {
+      return $('#registry_all').removeAttr('checked');
     }
   });
 
-  $('.reg_all').click(function() {
+  $('#country .cc').click(function() {
+    if ($('#country_all').attr('checked')) {
+      return $('#country_all').removeAttr('checked');
+    }
+  });
+
+  $('#registry_all').click(function() {
     if (this.checked) {
       return $('#registry input').attr('checked', 'checked');
     } else {
@@ -78,7 +111,7 @@
     }
   });
 
-  $('.cc_all').click(function() {
+  $('#country_all').click(function() {
     if (this.checked) {
       return $('#country input').attr('checked', 'checked');
     } else {
@@ -86,11 +119,11 @@
     }
   });
 
-  $('.reg_clear').click(function() {
+  $('#registry_clear').click(function() {
     return $('#registry input').removeAttr('checked');
   });
 
-  $('.cc_clear').click(function() {
+  $('#country_clear').click(function() {
     return $('#country input').removeAttr('checked');
   });
 
