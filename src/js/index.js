@@ -2,11 +2,11 @@
 (function() {
   ﻿;
 
-  var ShowTable, UpdatePagination, UpdateTable, jsondata, pagination_length, pagination_side, root, view_count;
+  var Pagination, ShowTable, UpdateTable, jsondata, pagination_count, pagination_length, root, view_count;
 
   view_count = 100;
 
-  pagination_side = 6;
+  pagination_count = 5;
 
   root = typeof exports !== "undefined" && exports !== null ? exports : this;
 
@@ -52,59 +52,89 @@
 
   UpdateTable = function(data) {
     return $.getJSON('/json', data, function(json) {
+      var params;
       jsondata = json;
       ShowTable(0, view_count);
-      pagination_length = Math.ceil(json.length / view_count);
-      return UpdatePagination(1);
+      params = {
+        view_record: view_count,
+        total_record: json.length,
+        nav_count: pagination_count
+      };
+      return $("#view_pages").pagination(params);
     });
   };
 
-  UpdatePagination = function(point) {
-    var GetFirstPosition, GetLastPosition, c_val, edge, first, i, last, str, _i;
-    GetFirstPosition = function(pos, side, length) {
-      if (length == null) {
-        length = 1;
+  $.fn.pagination = function(options) {
+    options.elements = options.elements != null ? options.elements : $(this);
+    return new Pagination(options);
+  };
+
+  $.fn.pagination.defaults = {
+    current_page: 1,
+    view_record: 10,
+    total_record: 0,
+    nav_count: 5
+  };
+
+  Pagination = function(options) {
+    var opts;
+    opts = $.extend({}, $.fn.pagination.defaults, options);
+    this.current_page = opts.current_page;
+    this.view_record = opts.view_record;
+    this.total_record = opts.total_record;
+    this.total_page = Math.ceil(this.total_record / this.view_record);
+    this.nav_count = opts.nav_count;
+    this.elements = opts.elements;
+    return this.initialized();
+  };
+
+  Pagination.prototype = {
+    initialized: function() {
+      if (this.total_page < this.nav_count) {
+        this.nav_count = this.total_page;
       }
-      if (pos - side > length) {
-        return pos - side;
+      if (this.total_page <= 1 || this.total_page < this.current_page) {
+        return;
       }
-      return length;
-    };
-    GetLastPosition = function(pos, side, length) {
-      if (length == null) {
-        length = pagination_length;
+      return this.makeNavigator(this.current_page);
+    },
+    makeNavigator: function(current) {
+      var first, i, last, nav_count_half, outstr, _i;
+      this.elements.empty();
+      nav_count_half = Math.floor(this.nav_count / 2);
+      first = current - nav_count_half;
+      last = current + nav_count_half;
+      if (first <= 0) {
+        first = 1;
+        last = this.nav_count;
       }
-      if (pos + side < length) {
-        return pos + side;
+      if (last > this.total_page) {
+        first = this.total_page - this.nav_count + 1;
+        last = this.total_page;
       }
-      return length;
-    };
-    if (point <= 1) {
-      first = 1;
-      last = GetLastPosition(point, pagination_side);
-      edge = 'first';
-    } else if (point >= pagination_length) {
-      first = GetFirstPosition(point, pagination_side);
-      last = pagination_length;
-      edge = 'last';
-    } else {
-      c_val = pagination_side / 2;
-      first = GetFirstPosition(point, c_val);
-      last = GetLastPosition(point, c_val);
-    }
-    str = '<li><a href="#" onclick="GetViewTable(1)">&#171;</a></li>';
-    for (i = _i = first; first <= last ? _i <= last : _i >= last; i = first <= last ? ++_i : --_i) {
-      str += '<li><a href="#" onclick="GetViewTable(' + i + ')">' + i + '</a></li>';
-    }
-    str += '<li><a href="#" onclick="GetViewTable(' + pagination_length + ')">&#187;</a></li>';
-    $("#view_pages ul").html(str);
-    $("#view_pages li").removeClass('disabled');
-    $("#view_pages li").addClass('enabled');
-    $("#view_pages li:contains(" + point + ")").addClass('disabled');
-    if (edge === 'first') {
-      return $("#view_pages li:first").addClass('disabled');
-    } else if (edge === 'last') {
-      return $("#view_pages li:last").addClass('disabled');
+      outstr = '<ul>';
+      if (current > 2) {
+        outstr += '<li class="first"><a href="#" onclick="GetViewTable(1)">&laquo;</a></li>';
+      }
+      if (current > 1) {
+        outstr += '<li class="prev"><a href="#" onclick="GetViewTable(' + (current - 1) + ')">&lsaquo;</a></li>';
+      }
+      for (i = _i = first; first <= last ? _i <= last : _i >= last; i = first <= last ? ++_i : --_i) {
+        if (i === current) {
+          outstr += '<li class="page active">';
+        } else {
+          outstr += '<li class="page">';
+        }
+        outstr += '<a href="#" onclick="GetViewTable(' + i + ')">' + i + '</a></li>';
+      }
+      if (current < this.total_page) {
+        outstr += '<li class="next"><a href="#" onclick="GetViewTable(' + (current + 1) + ')">&rsaquo;</a></li>';
+      }
+      if (current < this.total_page - 1) {
+        outstr += '<li class="last"><a href="#" onclick="GetViewTable(' + this.total_page + ')">&raquo;</a></li>';
+      }
+      outstr += '</ul>';
+      return this.elements.append(outstr);
     }
   };
 
@@ -126,8 +156,15 @@
   };
 
   root.GetViewTable = function(point) {
+    var params;
     ShowTable((point - 1) * view_count, point * view_count);
-    return UpdatePagination(point);
+    params = {
+      current_page: point,
+      view_record: view_count,
+      total_record: jsondata.length,
+      nav_count: pagination_count
+    };
+    return $("#view_pages").pagination(params);
   };
 
   $('#registry .rir').click(function() {

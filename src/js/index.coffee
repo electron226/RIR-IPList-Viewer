@@ -1,11 +1,10 @@
 ﻿# 1ページに表示する数
 view_count = 100
 
-# UpdatePaginationで指定したページの中心から左右にいくつまでページを表示するか
-# 偶数で指定
-pagination_side = 6
+pagination_count = 5
 
 # -------------------------------------------------------------
+
 root = exports ? this
 
 jsondata = []
@@ -38,60 +37,87 @@ UpdateTable = (data) ->
         ShowTable 0, view_count
 
         # paginationの設定
-        pagination_length = Math.ceil json.length / view_count
-        UpdatePagination 1 # 最初のページを選択
+        params =
+            view_record: view_count
+            total_record: json.length
+            nav_count: pagination_count
+        $("#view_pages").pagination(params)
 
-        # 最初のページ要素をアクティブに
-        #$('#view_pages li:lt(2)').attr 'class', 'active'
+$.fn.pagination = (options) ->
+    options.elements = if options.elements? then options.elements else $(@) 
+    new Pagination(options)
 
-# 指定したページを中心にページネーション表示
-UpdatePagination = (point) ->
-    GetFirstPosition = (pos, side, length = 1) ->
-        if pos - side > length
-            return pos - side
-        return length
-    GetLastPosition = (pos, side, length = pagination_length) ->
-        if pos + side < length
-            return pos + side
-        return length
+$.fn.pagination.defaults =
+    current_page: 1
+    view_record: 10
+    total_record: 0
+    nav_count: 5
+        
+Pagination = (options) ->
+    opts = $.extend({}, $.fn.pagination.defaults, options)
 
-    # 指定したページ別の表示範囲設定
-    if point <= 1
-        first = 1
-        last = GetLastPosition point, pagination_side
+    @current_page = opts.current_page                     # 現在のページ
+    @view_record = opts.view_record                       # 1ページに表示するレコード数
+    @total_record = opts.total_record                     # 全てのレコード数
+    @total_page = Math.ceil(@total_record / @view_record) # 総ページ数
+    @nav_count = opts.nav_count                           # 表示するナビゲーション数
+    @elements = opts.elements # 適用する要素
 
-        edge = 'first'
-    else if point >= pagination_length
-        first = GetFirstPosition point, pagination_side
-        last = pagination_length
+    @initialized()
 
-        edge = 'last'
-    else
-        c_val = pagination_side / 2
-        first = GetFirstPosition point, c_val
-        last = GetLastPosition point, c_val
+Pagination.prototype = {
+    initialized: ->
+        # 全てのページ数が表示するナビゲーション数より小さい場合、
+        # 総ページを表示するナビゲーション数にする
+        if @total_page < @nav_count
+            @nav_count = @total_page
+        
+        # トータルページ数が2以下または現在のページが総ページ数より大きい場合表示しない
+        if @total_page <= 1 || @total_page < @current_page
+            return
+        @makeNavigator(@current_page)
 
-    # ページ一覧
-    str = '<li><a href="#" onclick="GetViewTable(1)">&#171;</a></li>'
-    for i in [first..last]
-        str += '<li><a href="#" onclick="GetViewTable(' + i + ')">' + i + '</a></li>'
-    str += '<li><a href="#" onclick="GetViewTable(' + pagination_length + ')">&#187;</a></li>'
+    makeNavigator: (current) ->
+        # 現在、表示している要素を削除
+        @elements.empty()
 
-    # 更新
-    $("#view_pages ul").html str
+        # 現在のページがナビゲーションの中央にくるようにする
+        nav_count_half = Math.floor(@nav_count / 2)
+        first = current - nav_count_half
+        last = current + nav_count_half
+        if first <= 0
+            first = 1
+            last = @nav_count
+        if last > @total_page
+            first = @total_page - @nav_count + 1
+            last = @total_page
 
-    # 全てのボタンの有効無効リセット
-    $("#view_pages li").removeClass('disabled')
-    $("#view_pages li").addClass('enabled')
+        outstr = '<ul>'
 
-    # 指定されたページのボタンを無効
-    $("#view_pages li:contains(" + point + ")").addClass('disabled')
+        # 2ページ以降で「最初へ」ボタン追加
+        if current > 2
+            outstr += '<li class="first"><a href="#" onclick="GetViewTable(1)">&laquo;</a></li>'
+        # 最初のページ以降で「前へ」ボタン追加
+        if current > 1
+            outstr += '<li class="prev"><a href="#" onclick="GetViewTable(' + (current - 1) + ')">&lsaquo;</a></li>'
 
-    # 指定したページ別に左端、右端のボタンの有効無効判定
-    if edge == 'first'
-        $("#view_pages li:first").addClass('disabled')
-    else if edge == 'last'
-        $("#view_pages li:last").addClass('disabled')
+        for i in [first..last]
+            if i == current
+                outstr += '<li class="page active">'
+            else
+                outstr += '<li class="page">'
+            outstr += '<a href="#" onclick="GetViewTable(' + i + ')">' + i + '</a></li>'
+        
+        # 最後のページ以前で「次へ」ボタン追加
+        if current < @total_page
+            outstr += '<li class="next"><a href="#" onclick="GetViewTable(' + (current + 1) + ')">&rsaquo;</a></li>'
+        # 最後のページ以前で「最後へ」ボタン追加
+        if current < @total_page - 1
+            outstr += '<li class="last"><a href="#" onclick="GetViewTable(' + @total_page + ')">&raquo;</a></li>'
+
+        outstr += '</ul>'
+        @elements.append(outstr)
+    }
 
 # viewbarの更新
 # グローバル変数 jsondataにjsonのデータが入っている必要がある
@@ -115,8 +141,13 @@ ShowTable = (first, last) ->
 # 入力された値のぺージに更新
 # point : ページ数
 root.GetViewTable = (point) ->
-    ShowTable (point - 1) * view_count, point * view_count
-    UpdatePagination point
+    ShowTable((point - 1) * view_count, point * view_count)
+    params =
+        current_page: point
+        view_record: view_count
+        total_record: jsondata.length
+        nav_count: pagination_count
+    $("#view_pages").pagination(params)
 
 # レジストリのチェックボックスを外した場合、
 # ALLにチェックがあったらはずす
