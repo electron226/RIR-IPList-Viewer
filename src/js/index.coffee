@@ -1,10 +1,16 @@
 ﻿# 1ページに表示する数
 view_count = 100
 
+# UpdatePaginationで指定したページの中心から左右にいくつまでページを表示するか
+# 偶数で指定
+pagination_side = 6
+
 # -------------------------------------------------------------
 root = exports ? this
 
 jsondata = []
+
+length = 0
 
 # レジストリのチェックボックスの結果を有効
 $('#registry_save').click ->
@@ -29,19 +35,67 @@ UpdateTable = (data) ->
         jsondata = json
 
         # viewbarに設定
-        ShowTable(0, view_count)
+        ShowTable 0, view_count
 
-        # pagination設定
-        count = Math.ceil json.length / view_count
-        str = '<li><a href="#" onclick="GetViewTable(1)">&#171;</a></li>'
-        for i in [1..count]
-            str += '<li><a href="#" onclick="GetViewTable(' + i + ')">' + i + '</a></li>'
-        str += '<li><a href="#" onclick="GetViewTable(' + count + ')">&#187;</a></li>'
-
-        $("#view_pages ul").html str
+        # paginationの設定
+        length = Math.ceil json.length / view_count
+        UpdatePagination 1 # 最初のページを選択
 
         # 最初のページ要素をアクティブに
-        $('#view_pages li:lt(2)').attr 'class', 'active'
+        #$('#view_pages li:lt(2)').attr 'class', 'active'
+
+# 指定したページを中心にページネーション表示
+UpdatePagination = (point) ->
+    # 指定したページ別の表示範囲設定
+    if point <= 1
+        first = 1
+        if point + pagination_side < length
+            last = point + pagination_side
+        else
+            last = length
+
+        edge = 'first'
+    else if point >= length
+        if point - pagination_side > 1
+            first = point - pagination_side
+        else
+            first = 1
+        last = length
+
+        edge = 'last'
+    else
+        c_val = pagination_side / 2
+        if point - c_val <= 1
+            first = 1
+        else
+            first = point - c_val
+
+        if point + c_val >= length
+            last = length
+        else
+            last = point + c_val
+
+    # ページ一覧
+    str = '<li><a href="#" onclick="GetViewTable(1)">&#171;</a></li>'
+    for i in [first..last]
+        str += '<li><a href="#" onclick="GetViewTable(' + i + ')">' + i + '</a></li>'
+    str += '<li><a href="#" onclick="GetViewTable(' + length + ')">&#187;</a></li>'
+
+    # 更新
+    $("#view_pages ul").html str
+
+    # 全てのボタンの有効無効リセット
+    $("#view_pages li").removeClass('disabled')
+    $("#view_pages li").addClass('enabled')
+
+    # 指定されたページのボタンを無効
+    $("#view_pages li:contains(" + point + ")").addClass('disabled')
+
+    # 指定したページ別に左端、右端のボタンの有効無効判定
+    if edge == 'first'
+        $("#view_pages li:first").addClass('disabled')
+    else if edge == 'last'
+        $("#view_pages li:last").addClass('disabled')
 
 # viewbarの更新
 # グローバル変数 jsondataにjsonのデータが入っている必要がある
@@ -51,7 +105,7 @@ UpdateTable = (data) ->
 ShowTable = (first, last) ->
         str = ""
         j = 0
-        for i in [first..last]
+        for i in [first...last]
             if jsondata[i]?
                 str += "<tr>"
                 str += "<td>" + escape(jsondata[i].registry) + "</td>"
@@ -66,7 +120,7 @@ ShowTable = (first, last) ->
 # point : ページ数
 root.GetViewTable = (point) ->
     ShowTable (point - 1) * view_count, point * view_count
-
+    UpdatePagination point
 
 # レジストリのチェックボックスを外した場合、
 # ALLにチェックがあったらはずす

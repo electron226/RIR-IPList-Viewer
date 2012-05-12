@@ -2,13 +2,17 @@
 (function() {
   ﻿;
 
-  var ShowTable, UpdateTable, jsondata, root, view_count;
+  var ShowTable, UpdatePagination, UpdateTable, jsondata, length, pagination_side, root, view_count;
 
   view_count = 100;
+
+  pagination_side = 6;
 
   root = typeof exports !== "undefined" && exports !== null ? exports : this;
 
   jsondata = [];
+
+  length = 0;
 
   $('#registry_save').click(function() {
     var checks, num;
@@ -48,25 +52,65 @@
 
   UpdateTable = function(data) {
     return $.getJSON('/json', data, function(json) {
-      var count, i, str, _i;
       jsondata = json;
       ShowTable(0, view_count);
-      count = Math.ceil(json.length / view_count);
-      str = '<li><a href="#" onclick="GetViewTable(1)">&#171;</a></li>';
-      for (i = _i = 1; 1 <= count ? _i <= count : _i >= count; i = 1 <= count ? ++_i : --_i) {
-        str += '<li><a href="#" onclick="GetViewTable(' + i + ')">' + i + '</a></li>';
-      }
-      str += '<li><a href="#" onclick="GetViewTable(' + count + ')">&#187;</a></li>';
-      $("#view_pages ul").html(str);
-      return $('#view_pages li:lt(2)').attr('class', 'active');
+      length = Math.ceil(json.length / view_count);
+      return UpdatePagination(1);
     });
+  };
+
+  UpdatePagination = function(point) {
+    var c_val, edge, first, i, last, str, _i;
+    if (point <= 1) {
+      first = 1;
+      if (point + pagination_side < length) {
+        last = point + pagination_side;
+      } else {
+        last = length;
+      }
+      edge = 'first';
+    } else if (point >= length) {
+      if (point - pagination_side > 1) {
+        first = point - pagination_side;
+      } else {
+        first = 1;
+      }
+      last = length;
+      edge = 'last';
+    } else {
+      c_val = pagination_side / 2;
+      if (point - c_val <= 1) {
+        first = 1;
+      } else {
+        first = point - c_val;
+      }
+      if (point + c_val >= length) {
+        last = length;
+      } else {
+        last = point + c_val;
+      }
+    }
+    str = '<li><a href="#" onclick="GetViewTable(1)">&#171;</a></li>';
+    for (i = _i = first; first <= last ? _i <= last : _i >= last; i = first <= last ? ++_i : --_i) {
+      str += '<li><a href="#" onclick="GetViewTable(' + i + ')">' + i + '</a></li>';
+    }
+    str += '<li><a href="#" onclick="GetViewTable(' + length + ')">&#187;</a></li>';
+    $("#view_pages ul").html(str);
+    $("#view_pages li").removeClass('disabled');
+    $("#view_pages li").addClass('enabled');
+    $("#view_pages li:contains(" + point + ")").addClass('disabled');
+    if (edge === 'first') {
+      return $("#view_pages li:first").addClass('disabled');
+    } else if (edge === 'last') {
+      return $("#view_pages li:last").addClass('disabled');
+    }
   };
 
   ShowTable = function(first, last) {
     var i, j, str, _i;
     str = "";
     j = 0;
-    for (i = _i = first; first <= last ? _i <= last : _i >= last; i = first <= last ? ++_i : --_i) {
+    for (i = _i = first; first <= last ? _i < last : _i > last; i = first <= last ? ++_i : --_i) {
       if (jsondata[i] != null) {
         str += "<tr>";
         str += "<td>" + escape(jsondata[i].registry) + "</td>";
@@ -80,7 +124,8 @@
   };
 
   root.GetViewTable = function(point) {
-    return ShowTable((point - 1) * view_count, point * view_count);
+    ShowTable((point - 1) * view_count, point * view_count);
+    return UpdatePagination(point);
   };
 
   $('#registry .rir').click(function() {
