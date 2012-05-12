@@ -2,7 +2,7 @@
 (function() {
   ﻿;
 
-  var ShowTable, UpdatePagination, UpdateTable, jsondata, length, pagination_side, root, view_count;
+  var ShowTable, UpdatePagination, UpdateTable, jsondata, pagination_length, pagination_side, root, view_count;
 
   view_count = 100;
 
@@ -12,7 +12,7 @@
 
   jsondata = [];
 
-  length = 0;
+  pagination_length = 0;
 
   $('#registry_save').click(function() {
     var checks, num;
@@ -54,47 +54,49 @@
     return $.getJSON('/json', data, function(json) {
       jsondata = json;
       ShowTable(0, view_count);
-      length = Math.ceil(json.length / view_count);
+      pagination_length = Math.ceil(json.length / view_count);
       return UpdatePagination(1);
     });
   };
 
   UpdatePagination = function(point) {
-    var c_val, edge, first, i, last, str, _i;
+    var GetFirstPosition, GetLastPosition, c_val, edge, first, i, last, str, _i;
+    GetFirstPosition = function(pos, side, length) {
+      if (length == null) {
+        length = 1;
+      }
+      if (pos - side > length) {
+        return pos - side;
+      }
+      return length;
+    };
+    GetLastPosition = function(pos, side, length) {
+      if (length == null) {
+        length = pagination_length;
+      }
+      if (pos + side < length) {
+        return pos + side;
+      }
+      return length;
+    };
     if (point <= 1) {
       first = 1;
-      if (point + pagination_side < length) {
-        last = point + pagination_side;
-      } else {
-        last = length;
-      }
+      last = GetLastPosition(point, pagination_side);
       edge = 'first';
-    } else if (point >= length) {
-      if (point - pagination_side > 1) {
-        first = point - pagination_side;
-      } else {
-        first = 1;
-      }
-      last = length;
+    } else if (point >= pagination_length) {
+      first = GetFirstPosition(point, pagination_side);
+      last = pagination_length;
       edge = 'last';
     } else {
       c_val = pagination_side / 2;
-      if (point - c_val <= 1) {
-        first = 1;
-      } else {
-        first = point - c_val;
-      }
-      if (point + c_val >= length) {
-        last = length;
-      } else {
-        last = point + c_val;
-      }
+      first = GetFirstPosition(point, c_val);
+      last = GetLastPosition(point, c_val);
     }
     str = '<li><a href="#" onclick="GetViewTable(1)">&#171;</a></li>';
     for (i = _i = first; first <= last ? _i <= last : _i >= last; i = first <= last ? ++_i : --_i) {
       str += '<li><a href="#" onclick="GetViewTable(' + i + ')">' + i + '</a></li>';
     }
-    str += '<li><a href="#" onclick="GetViewTable(' + length + ')">&#187;</a></li>';
+    str += '<li><a href="#" onclick="GetViewTable(' + pagination_length + ')">&#187;</a></li>';
     $("#view_pages ul").html(str);
     $("#view_pages li").removeClass('disabled');
     $("#view_pages li").addClass('enabled');

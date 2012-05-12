@@ -10,7 +10,7 @@ root = exports ? this
 
 jsondata = []
 
-length = 0
+pagination_length = 0
 
 # レジストリのチェックボックスの結果を有効
 $('#registry_save').click ->
@@ -38,7 +38,7 @@ UpdateTable = (data) ->
         ShowTable 0, view_count
 
         # paginationの設定
-        length = Math.ceil json.length / view_count
+        pagination_length = Math.ceil json.length / view_count
         UpdatePagination 1 # 最初のページを選択
 
         # 最初のページ要素をアクティブに
@@ -46,40 +46,36 @@ UpdateTable = (data) ->
 
 # 指定したページを中心にページネーション表示
 UpdatePagination = (point) ->
+    GetFirstPosition = (pos, side, length = 1) ->
+        if pos - side > length
+            return pos - side
+        return length
+    GetLastPosition = (pos, side, length = pagination_length) ->
+        if pos + side < length
+            return pos + side
+        return length
+
     # 指定したページ別の表示範囲設定
     if point <= 1
         first = 1
-        if point + pagination_side < length
-            last = point + pagination_side
-        else
-            last = length
+        last = GetLastPosition point, pagination_side
 
         edge = 'first'
-    else if point >= length
-        if point - pagination_side > 1
-            first = point - pagination_side
-        else
-            first = 1
-        last = length
+    else if point >= pagination_length
+        first = GetFirstPosition point, pagination_side
+        last = pagination_length
 
         edge = 'last'
     else
         c_val = pagination_side / 2
-        if point - c_val <= 1
-            first = 1
-        else
-            first = point - c_val
-
-        if point + c_val >= length
-            last = length
-        else
-            last = point + c_val
+        first = GetFirstPosition point, c_val
+        last = GetLastPosition point, c_val
 
     # ページ一覧
     str = '<li><a href="#" onclick="GetViewTable(1)">&#171;</a></li>'
     for i in [first..last]
         str += '<li><a href="#" onclick="GetViewTable(' + i + ')">' + i + '</a></li>'
-    str += '<li><a href="#" onclick="GetViewTable(' + length + ')">&#187;</a></li>'
+    str += '<li><a href="#" onclick="GetViewTable(' + pagination_length + ')">&#187;</a></li>'
 
     # 更新
     $("#view_pages ul").html str
