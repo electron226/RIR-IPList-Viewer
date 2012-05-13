@@ -108,14 +108,14 @@ Pagination.prototype = {
 
         outstr = '<ul>'
 
-        # 2ページ以降で「最初へ」ボタン追加
+        # 「最初へ」ボタン追加(2ページ以降で有効)
         if current > 2
             outstr += '<li class="first">'
         else
             outstr += '<li class="first active">'
         outstr += '<a href="#" onclick="GetViewTable(1)">&laquo;</a></li>'
 
-        # 最初のページ以降で「前へ」ボタン追加
+        # 「前へ」ボタン追加(最初のページ以降で有効)
         if current > 1
             outstr += '<li class="prev">'
         else
@@ -129,14 +129,14 @@ Pagination.prototype = {
                 outstr += '<li class="page">'
             outstr += '<a href="#" onclick="GetViewTable(' + i + ')">' + i + '</a></li>'
         
-        # 最後のページ以前で「次へ」ボタン追加
+        # 「次へ」ボタン追加(最後のページ以前で有効)
         if current < @total_page
             outstr += '<li class="next">'
         else
             outstr += '<li class="next active">'
         outstr += '<a href="#" onclick="GetViewTable(' + (current + 1) + ')">&rsaquo;</a></li>'
 
-        # 最後のページ以前で「最後へ」ボタン追加
+        # 「最後へ」ボタン追加(最後のページの前ページ以前で有効)
         if current < @total_page - 1
             outstr += '<li class="last">'
         else
