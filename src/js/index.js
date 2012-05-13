@@ -32,7 +32,7 @@
 
   root.GetViewTable = function(point) {
     ShowTable((point - 1) * view_count, point * view_count);
-    return pager.makeNavigator(point);
+    return pager.MakeNavigator(point);
   };
 
   ShowTable = function(first, last) {
@@ -73,21 +73,21 @@
     this.total_page = Math.ceil(this.total_record / this.view_record);
     this.nav_count = opts.nav_count;
     this.elements = opts.elements;
-    this.initialized();
+    this.Initialized();
     return this;
   };
 
   Pagination.prototype = {
-    initialized: function() {
+    Initialized: function() {
       if (this.total_page < this.nav_count) {
         this.nav_count = this.total_page;
       }
       if (this.total_page <= 1 || this.total_page < this.current_page) {
         return;
       }
-      return this.makeNavigator(this.current_page);
+      return this.MakeNavigator(this.current_page);
     },
-    makeNavigator: function(current) {
+    MakeNavigator: function(current) {
       var first, i, last, nav_count_half, outstr, _i;
       this.elements.empty();
       nav_count_half = Math.floor(this.nav_count / 2);
@@ -136,8 +136,19 @@
       outstr += '<a href="#" onclick="GetViewTable(' + this.total_page + ')">&raquo;</a></li>';
       outstr += '</ul>';
       return this.elements.append(outstr);
+    },
+    GetTotalPage: function() {
+      return this.total_page;
     }
   };
+
+  $('#jump_pages').change(function() {
+    var input_page, page;
+    input_page = $(this).val();
+    page = input_page.match('^[0-9]+$');
+    $(this).val(page);
+    return GetViewTable(page);
+  });
 
   $('#registry_save').click(function() {
     var checks, num;

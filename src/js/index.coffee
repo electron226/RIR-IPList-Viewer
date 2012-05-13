@@ -33,7 +33,7 @@ UpdateTable = (data) ->
 # point : ページ数
 root.GetViewTable = (point) ->
     ShowTable((point - 1) * view_count, point * view_count)
-    pager.makeNavigator(point)
+    pager.MakeNavigator(point)
 
 # viewbarの更新
 # グローバル変数 jsondataにjsonのデータが入っている必要がある
@@ -76,11 +76,11 @@ Pagination = (options) ->
     @nav_count = opts.nav_count                           # 表示するナビゲーション数
     @elements = opts.elements # 適用する要素
 
-    @initialized()
+    @Initialized()
     return @
 
 Pagination.prototype = {
-    initialized: ->
+    Initialized: ->
         # 全てのページ数が表示するナビゲーション数より小さい場合、
         # 総ページを表示するナビゲーション数にする
         if @total_page < @nav_count
@@ -89,9 +89,9 @@ Pagination.prototype = {
         # トータルページ数が2以下または現在のページが総ページ数より大きい場合表示しない
         if @total_page <= 1 || @total_page < @current_page
             return
-        @makeNavigator(@current_page)
+        @MakeNavigator(@current_page)
 
-    makeNavigator: (current) ->
+    MakeNavigator: (current) ->
         # 現在、表示している要素を削除
         @elements.empty()
 
@@ -145,6 +145,9 @@ Pagination.prototype = {
 
         outstr += '</ul>'
         @elements.append(outstr)
+
+    GetTotalPage: ->
+        return @total_page
     }
 
 # -------------------------------------------------------------
