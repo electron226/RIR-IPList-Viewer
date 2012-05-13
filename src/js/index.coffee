@@ -8,24 +8,10 @@ pagination_count = 5
 root = exports ? this
 
 jsondata = []
-
 pagination_length = 0
+pager = NaN
 
-# レジストリのチェックボックスの結果を有効
-$('#registry_save').click ->
-    checks = (num.value for num in $('#registry .rir:checked'))
-
-    UpdateTable {'registry': checks.join(',')}
-
-    $('#country_clear').click()
-
-# 国名のチェックボックスの結果を有効
-$('#country_save').click ->
-    checks = (num.value for num in $('#country .cc:checked'))
-
-    UpdateTable {'country': checks.join(',')}
-
-    $('#registry_clear').click()
+# -------------------------------------------------------------
 
 # 更新処理
 UpdateTable = (data) ->
@@ -41,10 +27,37 @@ UpdateTable = (data) ->
             view_record: view_count
             total_record: json.length
             nav_count: pagination_count
-        $("#view_pages").pagination(params)
+        pager = $("#view_pages").pagination(params)
+
+# 入力された値のぺージに更新
+# point : ページ数
+root.GetViewTable = (point) ->
+    ShowTable((point - 1) * view_count, point * view_count)
+    pager.makeNavigator(point)
+
+# viewbarの更新
+# グローバル変数 jsondataにjsonのデータが入っている必要がある
+# first : 開始位置の数値
+# last : 終了位置の数値
+# 範囲 : first < last
+ShowTable = (first, last) ->
+        str = ""
+        j = 0
+        for i in [first...last]
+            if jsondata[i]?
+                str += "<tr>"
+                str += "<td>" + escape(jsondata[i].registry) + "</td>"
+                str += "<td>" + escape(jsondata[i].country) + "</td>"
+                str += "<td>" + escape(jsondata[i].StartIP)  + "</td>"
+                str += "<td>" + escape(jsondata[i].EndIP)  + "</td>"
+                str += "</tr>"
+
+        $("#viewbar tbody").html(str)
+
+# -------------------------------------------------------------
 
 $.fn.pagination = (options) ->
-    options.elements = if options.elements? then options.elements else $(@) 
+    options.elements = if options.elements? then options.elements else $(@)
     new Pagination(options)
 
 $.fn.pagination.defaults =
@@ -64,6 +77,7 @@ Pagination = (options) ->
     @elements = opts.elements # 適用する要素
 
     @initialized()
+    return @
 
 Pagination.prototype = {
     initialized: ->
@@ -119,35 +133,23 @@ Pagination.prototype = {
         @elements.append(outstr)
     }
 
-# viewbarの更新
-# グローバル変数 jsondataにjsonのデータが入っている必要がある
-# first : 開始位置の数値
-# last : 終了位置の数値
-# 範囲 : first < last
-ShowTable = (first, last) ->
-        str = ""
-        j = 0
-        for i in [first...last]
-            if jsondata[i]?
-                str += "<tr>"
-                str += "<td>" + escape(jsondata[i].registry) + "</td>"
-                str += "<td>" + escape(jsondata[i].country) + "</td>"
-                str += "<td>" + escape(jsondata[i].StartIP)  + "</td>"
-                str += "<td>" + escape(jsondata[i].EndIP)  + "</td>"
-                str += "</tr>"
+# -------------------------------------------------------------
 
-        $("#viewbar tbody").html str
+# レジストリのチェックボックスの結果を有効
+$('#registry_save').click ->
+    checks = (num.value for num in $('#registry .rir:checked'))
 
-# 入力された値のぺージに更新
-# point : ページ数
-root.GetViewTable = (point) ->
-    ShowTable((point - 1) * view_count, point * view_count)
-    params =
-        current_page: point
-        view_record: view_count
-        total_record: jsondata.length
-        nav_count: pagination_count
-    $("#view_pages").pagination(params)
+    UpdateTable {'registry': checks.join(',')}
+
+    $('#country_clear').click()
+
+# 国名のチェックボックスの結果を有効
+$('#country_save').click ->
+    checks = (num.value for num in $('#country .cc:checked'))
+
+    UpdateTable {'country': checks.join(',')}
+
+    $('#registry_clear').click()
 
 # レジストリのチェックボックスを外した場合、
 # ALLにチェックがあったらはずす

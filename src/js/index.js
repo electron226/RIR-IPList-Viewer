@@ -2,7 +2,7 @@
 (function() {
   ﻿;
 
-  var Pagination, ShowTable, UpdateTable, jsondata, pagination_count, pagination_length, root, view_count;
+  var Pagination, ShowTable, UpdateTable, jsondata, pager, pagination_count, pagination_length, root, view_count;
 
   view_count = 100;
 
@@ -14,41 +14,7 @@
 
   pagination_length = 0;
 
-  $('#registry_save').click(function() {
-    var checks, num;
-    checks = (function() {
-      var _i, _len, _ref, _results;
-      _ref = $('#registry .rir:checked');
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        num = _ref[_i];
-        _results.push(num.value);
-      }
-      return _results;
-    })();
-    UpdateTable({
-      'registry': checks.join(',')
-    });
-    return $('#country_clear').click();
-  });
-
-  $('#country_save').click(function() {
-    var checks, num;
-    checks = (function() {
-      var _i, _len, _ref, _results;
-      _ref = $('#country .cc:checked');
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        num = _ref[_i];
-        _results.push(num.value);
-      }
-      return _results;
-    })();
-    UpdateTable({
-      'country': checks.join(',')
-    });
-    return $('#registry_clear').click();
-  });
+  pager = NaN;
 
   UpdateTable = function(data) {
     return $.getJSON('/json', data, function(json) {
@@ -60,8 +26,30 @@
         total_record: json.length,
         nav_count: pagination_count
       };
-      return $("#view_pages").pagination(params);
+      return pager = $("#view_pages").pagination(params);
     });
+  };
+
+  root.GetViewTable = function(point) {
+    ShowTable((point - 1) * view_count, point * view_count);
+    return pager.makeNavigator(point);
+  };
+
+  ShowTable = function(first, last) {
+    var i, j, str, _i;
+    str = "";
+    j = 0;
+    for (i = _i = first; first <= last ? _i < last : _i > last; i = first <= last ? ++_i : --_i) {
+      if (jsondata[i] != null) {
+        str += "<tr>";
+        str += "<td>" + escape(jsondata[i].registry) + "</td>";
+        str += "<td>" + escape(jsondata[i].country) + "</td>";
+        str += "<td>" + escape(jsondata[i].StartIP) + "</td>";
+        str += "<td>" + escape(jsondata[i].EndIP) + "</td>";
+        str += "</tr>";
+      }
+    }
+    return $("#viewbar tbody").html(str);
   };
 
   $.fn.pagination = function(options) {
@@ -85,7 +73,8 @@
     this.total_page = Math.ceil(this.total_record / this.view_record);
     this.nav_count = opts.nav_count;
     this.elements = opts.elements;
-    return this.initialized();
+    this.initialized();
+    return this;
   };
 
   Pagination.prototype = {
@@ -138,34 +127,41 @@
     }
   };
 
-  ShowTable = function(first, last) {
-    var i, j, str, _i;
-    str = "";
-    j = 0;
-    for (i = _i = first; first <= last ? _i < last : _i > last; i = first <= last ? ++_i : --_i) {
-      if (jsondata[i] != null) {
-        str += "<tr>";
-        str += "<td>" + escape(jsondata[i].registry) + "</td>";
-        str += "<td>" + escape(jsondata[i].country) + "</td>";
-        str += "<td>" + escape(jsondata[i].StartIP) + "</td>";
-        str += "<td>" + escape(jsondata[i].EndIP) + "</td>";
-        str += "</tr>";
+  $('#registry_save').click(function() {
+    var checks, num;
+    checks = (function() {
+      var _i, _len, _ref, _results;
+      _ref = $('#registry .rir:checked');
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        num = _ref[_i];
+        _results.push(num.value);
       }
-    }
-    return $("#viewbar tbody").html(str);
-  };
+      return _results;
+    })();
+    UpdateTable({
+      'registry': checks.join(',')
+    });
+    return $('#country_clear').click();
+  });
 
-  root.GetViewTable = function(point) {
-    var params;
-    ShowTable((point - 1) * view_count, point * view_count);
-    params = {
-      current_page: point,
-      view_record: view_count,
-      total_record: jsondata.length,
-      nav_count: pagination_count
-    };
-    return $("#view_pages").pagination(params);
-  };
+  $('#country_save').click(function() {
+    var checks, num;
+    checks = (function() {
+      var _i, _len, _ref, _results;
+      _ref = $('#country .cc:checked');
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        num = _ref[_i];
+        _results.push(num.value);
+      }
+      return _results;
+    })();
+    UpdateTable({
+      'country': checks.join(',')
+    });
+    return $('#registry_clear').click();
+  });
 
   $('#registry .rir').click(function() {
     if ($('#registry_all').attr('checked')) {
