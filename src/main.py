@@ -18,6 +18,7 @@
 import os
 import logging
 import pickle
+import types
 
 # DJANGO
 os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
@@ -58,6 +59,7 @@ def GetRegistries(registry):
                     "StartIP": ip.StartIP(), "EndIP": ip.EndIP()}
             jsonlist.append(json)
     jsonlist.sort(lambda x, y: cmp(x["country"], y["country"]));
+    jsonlist.sort(lambda x, y: cmp(x["registry"], y["registry"]));
 
     return jsonlist
 
@@ -74,6 +76,7 @@ def GetCountries(country):
                     "StartIP": ip.StartIP(), "EndIP": ip.EndIP()}
             jsonlist.append(json)
     jsonlist.sort(lambda x, y: cmp(x["country"], y["country"]));
+    jsonlist.sort(lambda x, y: cmp(x["registry"], y["registry"]));
 
     return jsonlist
 
@@ -87,8 +90,12 @@ class GetJSONHandler(webapp.RequestHandler):
             country = self.request.get('country')
             if country:
                 countries = country.split(',')
-                jsonlist = GetCountries(countries)
+                countries30 = common.Split_Seq(countries, 30)
+                jsonlist = []
+                for cclist in countries30:
+                    jsonlist += GetCountries(cclist)
             else:
+                # 空
                 jsonlist = [{"country" : "", "registry": "", "StartIP": "", "EndIP": ""}]
 
         ccjson = simplejson.dumps(jsonlist)
@@ -115,6 +122,7 @@ class MainHandler(webapp.RequestHandler):
             rirhash = rir.get()
             if rirhash:
                 exist_rir.append(reg)
+        exist_rir.sort()
         
         template_values = { 'rir' : exist_rir,
                             'countries' : all_countries_cache,

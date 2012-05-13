@@ -10,11 +10,11 @@ from google.appengine.ext import db
 # ----------------------------------------------------------------------------
 # 取得先
 RIR = {
-#        'ICANN':'http://ftp.apnic.net/stats/iana/delegated-iana-latest',
-#        'ARIN':'http://ftp.apnic.net/stats/arin/delegated-arin-latest',
-#        'APNIC':'http://ftp.apnic.net/stats/apnic/delegated-apnic-latest',
-#        'RIPE':'http://ftp.apnic.net/stats/ripe-ncc/delegated-ripencc-latest',
-#        'LACNIC':'http://ftp.apnic.net/stats/lacnic/delegated-lacnic-latest',
+        'ICANN':'http://ftp.apnic.net/stats/iana/delegated-iana-latest',
+        'ARIN':'http://ftp.apnic.net/stats/arin/delegated-arin-latest',
+        'APNIC':'http://ftp.apnic.net/stats/apnic/delegated-apnic-latest',
+        'RIPE':'http://ftp.apnic.net/stats/ripe-ncc/delegated-ripencc-latest',
+        'LACNIC':'http://ftp.apnic.net/stats/lacnic/delegated-lacnic-latest',
         'AFRINIC':'http://ftp.apnic.net/stats/afrinic/delegated-afrinic-latest'
         }
 
@@ -26,6 +26,9 @@ HASH_KEYNAME = 'HASH'
 COUNTRIES_KEYNAME = 'COUNTRIES'
 
 # ----------------------------------------------------------------------------
+
+def Split_Seq(seq, size):
+    return [seq[i : i + size] for i in xrange(0, len(seq), size)]
 
 def CRC32Check(string):
     return zlib.crc32(string) & 0xFFFFFFFF
