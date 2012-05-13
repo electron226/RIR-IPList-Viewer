@@ -110,10 +110,17 @@ Pagination.prototype = {
 
         # 2ページ以降で「最初へ」ボタン追加
         if current > 2
-            outstr += '<li class="first"><a href="#" onclick="GetViewTable(1)">&laquo;</a></li>'
+            outstr += '<li class="first">'
+        else
+            outstr += '<li class="first active">'
+        outstr += '<a href="#" onclick="GetViewTable(1)">&laquo;</a></li>'
+
         # 最初のページ以降で「前へ」ボタン追加
         if current > 1
-            outstr += '<li class="prev"><a href="#" onclick="GetViewTable(' + (current - 1) + ')">&lsaquo;</a></li>'
+            outstr += '<li class="prev">'
+        else
+            outstr += '<li class="prev active">'
+        outstr += '<a href="#" onclick="GetViewTable(' + (current - 1) + ')">&lsaquo;</a></li>'
 
         for i in [first..last]
             if i == current
@@ -124,10 +131,17 @@ Pagination.prototype = {
         
         # 最後のページ以前で「次へ」ボタン追加
         if current < @total_page
-            outstr += '<li class="next"><a href="#" onclick="GetViewTable(' + (current + 1) + ')">&rsaquo;</a></li>'
+            outstr += '<li class="next">'
+        else
+            outstr += '<li class="next active">'
+        outstr += '<a href="#" onclick="GetViewTable(' + (current + 1) + ')">&rsaquo;</a></li>'
+
         # 最後のページ以前で「最後へ」ボタン追加
         if current < @total_page - 1
-            outstr += '<li class="last"><a href="#" onclick="GetViewTable(' + @total_page + ')">&raquo;</a></li>'
+            outstr += '<li class="last">'
+        else
+            outstr += '<li class="last active">'
+        outstr += '<a href="#" onclick="GetViewTable(' + @total_page + ')">&raquo;</a></li>'
 
         outstr += '</ul>'
         @elements.append(outstr)

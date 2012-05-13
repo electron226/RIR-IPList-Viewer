@@ -103,11 +103,17 @@
       }
       outstr = '<ul>';
       if (current > 2) {
-        outstr += '<li class="first"><a href="#" onclick="GetViewTable(1)">&laquo;</a></li>';
+        outstr += '<li class="first">';
+      } else {
+        outstr += '<li class="first active">';
       }
+      outstr += '<a href="#" onclick="GetViewTable(1)">&laquo;</a></li>';
       if (current > 1) {
-        outstr += '<li class="prev"><a href="#" onclick="GetViewTable(' + (current - 1) + ')">&lsaquo;</a></li>';
+        outstr += '<li class="prev">';
+      } else {
+        outstr += '<li class="prev active">';
       }
+      outstr += '<a href="#" onclick="GetViewTable(' + (current - 1) + ')">&lsaquo;</a></li>';
       for (i = _i = first; first <= last ? _i <= last : _i >= last; i = first <= last ? ++_i : --_i) {
         if (i === current) {
           outstr += '<li class="page active">';
@@ -117,11 +123,17 @@
         outstr += '<a href="#" onclick="GetViewTable(' + i + ')">' + i + '</a></li>';
       }
       if (current < this.total_page) {
-        outstr += '<li class="next"><a href="#" onclick="GetViewTable(' + (current + 1) + ')">&rsaquo;</a></li>';
+        outstr += '<li class="next">';
+      } else {
+        outstr += '<li class="next active">';
       }
+      outstr += '<a href="#" onclick="GetViewTable(' + (current + 1) + ')">&rsaquo;</a></li>';
       if (current < this.total_page - 1) {
-        outstr += '<li class="last"><a href="#" onclick="GetViewTable(' + this.total_page + ')">&raquo;</a></li>';
+        outstr += '<li class="last">';
+      } else {
+        outstr += '<li class="last active">';
       }
+      outstr += '<a href="#" onclick="GetViewTable(' + this.total_page + ')">&raquo;</a></li>';
       outstr += '</ul>';
       return this.elements.append(outstr);
     }
