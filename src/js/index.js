@@ -33,6 +33,7 @@
 
   $.fn.UpdateTable = function(data) {
     var $this;
+    $("#load_circle").css('display', 'inline');
     $this = $(this);
     $this.state('loading');
     return $.getJSON('/json', data, function(json) {
@@ -45,7 +46,8 @@
         nav_count: pagination_count
       };
       pager = $("#view_pages").pagination(params);
-      return $this.state('complete');
+      $this.state('complete');
+      return $("#load_circle").css('display', 'none');
     });
   };
 

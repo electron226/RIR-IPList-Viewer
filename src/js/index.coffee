@@ -28,6 +28,8 @@ $.fn.state = (state) ->
 
 # 更新処理
 $.fn.UpdateTable = (data) ->
+    # 読み込みアニメーションなどの表示
+    $("#load_circle").css('display', 'inline')
     $this = $(@)
     $this.state('loading')
 
@@ -45,7 +47,9 @@ $.fn.UpdateTable = (data) ->
             nav_count: pagination_count
         pager = $("#view_pages").pagination(params)
 
+        # 読み込みアニメーションなど終了
         $this.state('complete')
+        $("#load_circle").css('display', 'none')
 
 # 入力された値のぺージに更新
 # point : ページ数
@@ -185,6 +189,8 @@ $('#country_save').click ->
 
     $('#registry_clear').click()
 
+# -------------------------------------------------------------
+
 # レジストリのチェックボックスを外した場合、
 # ALLにチェックがあったらはずす
 $('#registry .rir').click ->
@@ -196,6 +202,8 @@ $('#registry .rir').click ->
 $('#country .cc').click ->
     if $('#country_all').attr 'checked'
         $('#country_all').removeAttr 'checked'
+
+# -------------------------------------------------------------
 
 # レジストリを全てチェック
 $('#registry_all').click ->
@@ -210,6 +218,8 @@ $('#country_all').click ->
         $('#country input').attr 'checked', 'checked'
     else
         $('#country input').removeAttr 'checked'
+
+# -------------------------------------------------------------
 
 # レジストリのチェックを全てクリア
 $('#registry_clear').click ->
