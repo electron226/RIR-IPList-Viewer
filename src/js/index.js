@@ -2,7 +2,7 @@
 (function() {
   ﻿;
 
-  var Pagination, ShowTable, UpdateTable, jsondata, pager, pagination_count, pagination_length, root, view_count;
+  var Pagination, ShowTable, jsondata, pager, pagination_count, pagination_length, root, view_count;
 
   view_count = 100;
 
@@ -16,7 +16,25 @@
 
   pager = NaN;
 
-  UpdateTable = function(data) {
+  $.fn.state = function(state) {
+    var d;
+    d = 'disabled';
+    return this.each(function() {
+      var $this;
+      $this = $(this);
+      $this.html($this.data()[state]);
+      if (state === "loading") {
+        return $this.addClass(d).attr(d, d);
+      } else {
+        return $this.removeClass(d).removeAttr(d);
+      }
+    });
+  };
+
+  $.fn.UpdateTable = function(data) {
+    var $this;
+    $this = $(this);
+    $this.state('loading');
     return $.getJSON('/json', data, function(json) {
       var params;
       jsondata = json;
@@ -26,7 +44,8 @@
         total_record: json.length,
         nav_count: pagination_count
       };
-      return pager = $("#view_pages").pagination(params);
+      pager = $("#view_pages").pagination(params);
+      return $this.state('complete');
     });
   };
 
@@ -83,9 +102,10 @@
         this.nav_count = this.total_page;
       }
       if (this.total_page <= 1 || this.total_page < this.current_page) {
-        return;
+        return this.elements.empty();
+      } else {
+        return this.MakeNavigator(this.current_page);
       }
-      return this.MakeNavigator(this.current_page);
     },
     MakeNavigator: function(current) {
       var first, i, last, nav_count_half, outstr, _i;
@@ -136,19 +156,8 @@
       outstr += '<a href="#" onclick="GetViewTable(' + this.total_page + ')">&raquo;</a></li>';
       outstr += '</ul>';
       return this.elements.append(outstr);
-    },
-    GetTotalPage: function() {
-      return this.total_page;
     }
   };
-
-  $('#jump_pages').change(function() {
-    var input_page, page;
-    input_page = $(this).val();
-    page = input_page.match('^[0-9]+$');
-    $(this).val(page);
-    return GetViewTable(page);
-  });
 
   $('#registry_save').click(function() {
     var checks, num;
@@ -162,7 +171,7 @@
       }
       return _results;
     })();
-    UpdateTable({
+    $(this).UpdateTable({
       'registry': checks.join(',')
     });
     return $('#country_clear').click();
@@ -180,7 +189,7 @@
       }
       return _results;
     })();
-    UpdateTable({
+    $(this).UpdateTable({
       'country': checks.join(',')
     });
     return $('#registry_clear').click();

@@ -1,6 +1,7 @@
 ﻿# 1ページに表示する数
 view_count = 100
 
+# ページネーションに表示するページ数
 pagination_count = 5
 
 # -------------------------------------------------------------
@@ -13,8 +14,23 @@ pager = NaN
 
 # -------------------------------------------------------------
 
+$.fn.state = (state) ->
+    d = 'disabled'
+    return @.each ->
+        $this = $(@)
+        $this.html( $this.data()[state] )
+        if state == "loading"
+            $this.addClass(d).attr(d, d)
+        else
+            $this.removeClass(d).removeAttr(d)
+
+# -------------------------------------------------------------
+
 # 更新処理
-UpdateTable = (data) ->
+$.fn.UpdateTable = (data) ->
+    $this = $(@)
+    $this.state('loading')
+
     $.getJSON '/json', data, (json) ->
         # 他の関数でも使えるように代入
         jsondata = json
@@ -28,6 +44,8 @@ UpdateTable = (data) ->
             total_record: json.length
             nav_count: pagination_count
         pager = $("#view_pages").pagination(params)
+
+        $this.state('complete')
 
 # 入力された値のぺージに更新
 # point : ページ数
@@ -88,8 +106,10 @@ Pagination.prototype = {
         
         # トータルページ数が2以下または現在のページが総ページ数より大きい場合表示しない
         if @total_page <= 1 || @total_page < @current_page
-            return
-        @MakeNavigator(@current_page)
+            # 前回の結果が残っている場合があるため、表示されている要素をクリア
+            @elements.empty()
+        else
+            @MakeNavigator(@current_page)
 
     MakeNavigator: (current) ->
         # 現在、表示している要素を削除
@@ -145,9 +165,6 @@ Pagination.prototype = {
 
         outstr += '</ul>'
         @elements.append(outstr)
-
-    GetTotalPage: ->
-        return @total_page
     }
 
 # -------------------------------------------------------------
@@ -156,7 +173,7 @@ Pagination.prototype = {
 $('#registry_save').click ->
     checks = (num.value for num in $('#registry .rir:checked'))
 
-    UpdateTable {'registry': checks.join(',')}
+    $(@).UpdateTable {'registry': checks.join(',')}
 
     $('#country_clear').click()
 
@@ -164,7 +181,7 @@ $('#registry_save').click ->
 $('#country_save').click ->
     checks = (num.value for num in $('#country .cc:checked'))
 
-    UpdateTable {'country': checks.join(',')}
+    $(@).UpdateTable {'country': checks.join(',')}
 
     $('#registry_clear').click()
 

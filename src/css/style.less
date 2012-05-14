@@ -1,0 +1,77 @@
+@circle_shadow_color: #2187e7;
+
+.circle_base (@size) {
+	background-color: rgba(0,0,0,0);
+	border: 5px solid rgba(0,183,229,0.9);
+	opacity: .9;
+	border-right: 5px solid rgba(0,0,0,0);
+	border-left: 5px solid rgba(0,0,0,0);
+	border-radius: 50px;
+	width: @size;
+	height: @size;
+	margin:0 auto;
+}
+
+.circle {
+    .circle_base(50px);
+
+	box-shadow: 0 0 35px @circle_shadow_color;
+
+	-moz-animation: spinPulse 1s infinite ease-in-out;
+	-webkit-animation: spinPulse 1s infinite linear;
+}
+
+.circle1 {
+    .circle_base(30px);
+
+	box-shadow: 0 0 15px @circle_shadow_color; 
+	position:relative;
+	top:-50px;
+
+    @animation: spinoffPulse 1s infinite linear;
+	-moz-animation: @animation;
+	-webkit-animation: @animation;
+}
+
+.spin_transform (@radius) {
+    -moz-transform: @radius;
+    -webkit-transform: @radius;
+}
+
+.spin_keyframes {
+	0% {
+        .spin_transform(rotate(160deg));
+        opacity: 0;
+        box-shadow:0 0 1px @circle_shadow_color;
+    }
+	50% {
+        .spin_transform(rotate(145deg));
+        opacity: 1;
+    }
+	100% {
+        .spin_transform(rotate(-320deg));
+        opacity: 0;
+    }
+}
+
+.spinoff_keyframes {
+    0% {
+        .spin_transform(rotate(0deg));
+    }
+    100% {
+        .spin_transform(rotate(360deg));
+    }
+}
+
+@-moz-keyframes spinPulse {
+    .spin_keyframes
+}
+@-moz-keyframes spinoffPulse {
+    .spinoff_keyframes
+}
+@-webkit-keyframes spinPulse {
+    .spin_keyframes
+}
+@-webkit-keyframes spinoffPulse {
+    .spinoff_keyframes
+}
