@@ -228,3 +228,8 @@ $('#registry_clear').click ->
 # 国名のチェックを全てクリア
 $('#country_clear').click ->
     $('#country input').removeAttr 'checked'
+
+# -------------------------------------------------------------
+$(document).ready ->
+    $('#JavaScript_OFF').css('display', 'none')
+

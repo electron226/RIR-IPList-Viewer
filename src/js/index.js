@@ -233,4 +233,8 @@
     return $('#country input').removeAttr('checked');
   });
 
+  $(document).ready(function() {
+    return $('#JavaScript_OFF').css('display', 'none');
+  });
+
 }).call(this);
