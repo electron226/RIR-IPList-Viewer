@@ -10,7 +10,6 @@ from google.appengine.ext import db
 # ----------------------------------------------------------------------------
 # 取得先
 RIR = {
-        'ICANN':'http://ftp.apnic.net/stats/iana/delegated-iana-latest',
         'ARIN':'http://ftp.apnic.net/stats/arin/delegated-arin-latest',
         'APNIC':'http://ftp.apnic.net/stats/apnic/delegated-apnic-latest',
         'RIPE':'http://ftp.apnic.net/stats/ripe-ncc/delegated-ripencc-latest',
@@ -77,7 +76,7 @@ def DeleteRecord(name, registry):
         db.run_in_transaction(tClean, query)
         qfetch = query.fetch(100)
 
-def Clear(registry):
+def ClearRecord(registry):
     query = IPStore.gql("WHERE registry = :1", registry)
     qfetch = query.fetch(100)
     while len(qfetch) != 0:

@@ -1,52 +1,52 @@
 // --------------------------------------------------------------------------
-// 読み込みアニメーション
+// 隱ｭ縺ｿ霎ｼ縺ｿ繧｢繝九Γ繝ｼ繧ｷ繝ｧ繝ｳ
 // --------------------------------------------------------------------------
 
 @circle_shadow_color: #2187e7;
 
 .circle_base (@size) {
-	background-color: rgba(0,0,0,0);
-	border: 5px solid rgba(0,183,229,0.9);
-	opacity: .9;
-	border-right: 5px solid rgba(0,0,0,0);
-	border-left: 5px solid rgba(0,0,0,0);
-	border-radius: 50px;
-	width: @size;
-	height: @size;
-	margin:0 auto;
+	background-color : rgba(0,0,0,0);
+	border           : 5px solid rgba(0,183,229,0.9);
+	opacity          : .9;
+	border-right     : 5px solid rgba(0,0,0,0);
+	border-left      : 5px solid rgba(0,0,0,0);
+	border-radius    : 50px;
+	width            : @size;
+	height           : @size;
+	margin           : 0 auto;
 }
 
 .circle {
     .circle_base(50px);
 
-	box-shadow: 0 0 35px @circle_shadow_color;
+	box-shadow        : 0 0 35px @circle_shadow_color;
 
-	-moz-animation: spinPulse 1s infinite ease-in-out;
-	-webkit-animation: spinPulse 1s infinite linear;
+	-moz-animation    : spinPulse 1s infinite ease-in-out;
+	-webkit-animation : spinPulse 1s infinite linear;
 }
 
 .circle1 {
     .circle_base(30px);
 
-	box-shadow: 0 0 15px @circle_shadow_color; 
-	position:relative;
-	top:-50px;
+	box-shadow        : 0 0 15px @circle_shadow_color;
+	position          : relative;
+	top               : -50px;
 
-    @animation: spinoffPulse 1s infinite linear;
-	-moz-animation: @animation;
-	-webkit-animation: @animation;
+	@animation        : spinoffPulse 1s infinite linear;
+	-moz-animation    : @animation;
+	-webkit-animation : @animation;
 }
 
 .spin_transform (@radius) {
-    -moz-transform: @radius;
-    -webkit-transform: @radius;
+    -moz-transform    : @radius;
+    -webkit-transform : @radius;
 }
 
 .spin_keyframes {
 	0% {
         .spin_transform(rotate(160deg));
-        opacity: 0;
-        box-shadow:0 0 1px @circle_shadow_color;
+        opacity    : 0;
+        box-shadow : 0 0 1px @circle_shadow_color;
     }
 	50% {
         .spin_transform(rotate(145deg));

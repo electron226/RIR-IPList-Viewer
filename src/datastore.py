@@ -13,6 +13,11 @@ from google.appengine.api import memcache
 import common
 import ips
 
+# IP一覧を保存する
+# memcacheの最大保存期間(秒)
+# 最高期間: 1ヶ月
+memcache_time = (129600)
+
 # ハッシュ値確認用
 header_rule = re.compile(r'\d{1}\|[a-z]+\|\d+\|\d+\|\d+\|\d+\|[+-]?\d+')
 
@@ -91,7 +96,7 @@ class DataStoreHandler(webapp.RequestHandler):
             header = header_rule.match(line)
             if header:
                 newhash = hashlib.md5(header.group()).hexdigest()
-                if oldhash != None and oldhash == newhash:
+                if oldhash is not None and oldhash == newhash:
                     # 前回と同一のハッシュの場合
                     newget = False
                     logging.info('Already Latest Edition the "%s".' % registry)
@@ -106,7 +111,7 @@ class DataStoreHandler(webapp.RequestHandler):
 
             # 一致するレジストリのキャッシュを削除
             logging.debug('Old IPList Clear Start. "%s".' % registry)
-            common.Clear(registry);
+            common.ClearRecord(registry);
             logging.debug('Old IPList Clear Start "%s".' % registry)
 
             # 取得したIP一覧を最適化後に保存
@@ -133,15 +138,22 @@ class DataStoreHandler(webapp.RequestHandler):
             # 保存
             logging.info('Get Update IPList Start. "%s"' % registry)
 
-            for country, value in ipdict.items():
+            # memcacheとデータストアに保存
+            memcache_dict = {}
+            for country, value in ipdict.iteritems():
                 ccjson = simplejson.dumps(value, cls = ips.IPEncoder)
                 common.WriteRecord(country, registry, ccjson, True)
+                memcache_dict["%s" % country] = ccjson
 
             # 国名一覧をキャッシュに保存
             common.WriteRecord(common.COUNTRIES_KEYNAME, registry, ipdict.keys(), True)
+            memcache_dict[common.COUNTRIES_KEYNAME] = ipdict.keys()
 
             # Update Hash
             common.WriteRecord(common.HASH_KEYNAME, registry, newhash, False)
+
+            # memcache Update
+            memcache.set_multi(memcache_dict, memcache_time, registry)
 
             logging.info('Get Update IPList End. "%s"' % registry)
             logging.info('Update complete the "%s".' % registry)
