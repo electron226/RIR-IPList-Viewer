@@ -114,7 +114,7 @@ def GetRegistriesRecords(registries):
             ip = ips.IPDecoder(ipobj)
             json = {"country" : record.name, "registry": record.registry,
                     "StartIP": ip.StartIP(), "EndIP": ip.EndIP()}
-        jsonlist.append(json)
+            jsonlist.append(json)
 
     return jsonlist
 
