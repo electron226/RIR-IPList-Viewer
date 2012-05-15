@@ -1,0 +1,35 @@
+exec = (require 'child_process').exec
+
+FILES_COFFEE = [
+    'js/index.coffee'
+]
+FILES_LESS = [
+    'css/style.less'
+]
+
+FilePathNoEXT = (filename) ->
+    return filename.substr(0, filename.lastIndexOf("."))
+
+task 'compile', 'compile js and css.', (options) ->
+    outputErr = (err, stdout, stderr) ->
+        throw err if err
+        if stdout or stderr
+            console.log "#(stdout) #(stderr)"
+
+    for file in FILES_LESS
+        NOEXT_CSS = FilePathNoEXT(file)
+        exec "lessc #{file} > #{NOEXT_CSS}.css", outputErr
+        setTimeout( ->
+                exec "yuicompressor --type css --charset UTF-8 -o #{NOEXT_CSS}.min.css #{NOEXT_CSS}.css", outputErr
+            , 500)
+
+    # CoffeeScript
+    if FILES_COFFEE.length is 1
+        exec "coffee -c #{FILES_COFFEE[0]}", outputErr
+    else
+        exec "coffee -cj #{FILES_COFFEE.join ' '}", outputErr
+        
+    NOEXT_JS = FilePathNoEXT(FILES_COFFEE[0])
+    setTimeout( ->
+            exec "yuicompressor --type js --charset UTF-8 -o #{NOEXT_JS}.min.js #{NOEXT_JS}.js", outputErr
+        , 500)
