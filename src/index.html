@@ -20,13 +20,47 @@
                     IP View
                 </a>
                 <ul class="nav">
-                	<li><a href="">使い方</a></li>
-                	<li><a href="">カスタマイズ出力</a></li>
+                	<li><a href="#usage" data-toggle="modal">使用方法</a></li>
+                	<li><a href="#custom" data-toggle="modal">カスタマイズ</a></li>
                 </ul>
             </div>
         </div>
     </div>
 
+    <!-- 使用方法 -->
+    <div id="usage" class="modal hide fade">
+    	<div class="modal-header">
+    		<button class="close" data-dismiss="modal">x</button>
+            <h3>使用方法</h3>
+    	</div>
+
+        <div class="modal-body">
+        	<p>BODY</p>
+        </div>
+
+        <div class="modal-footer">
+            <a href="#" class="btn" data-dismiss="modal">Close</a>
+        </div>
+    </div>
+
+    <!-- カスタマイズ -->
+    <div id="custom" class="modal hide fade">
+    	<div class="modal-header">
+    		<button class="close" data-dismiss="modal">x</button>
+            <h3>カスタマイズ</h3>
+    	</div>
+
+        <div class="modal-body">
+        	<p>BODY</p>
+        </div>
+
+        <div class="modal-footer">
+            <a href="#" class="btn btn-primary">Save Changes</a>
+            <a href="#" class="btn" data-dismiss="modal">Close</a>
+        </div>
+    </div>
+
+    <!-- メインページ -->
     <div class="container" style="padding-top: 60px;">
         <div id="JavaScript_OFF" style="text-align:center; border: 5px solid #FF0000;">
             <p>JavaScriptを有効にしてください。</p>
@@ -38,10 +72,12 @@
                     <div id="registry" class="control-group">
                         <label class="control-label">レジストリ</label>
                         <div class="controls">
-                                <label class="checkbox"><input type="checkbox" id="registry_all">ALL</label>
-                                <hr>
+                            <label class="checkbox"><input type="checkbox" id="registry_all">ALL</label>
+                            <hr>
                             {% for registry in rir %}
-                                <label class="checkbox"><input type="checkbox" class="rir" value="{{ registry }}">{{ registry|escape }}</label>
+                                <label class="checkbox">
+                                    <input type="checkbox" class="rir" value="{{ registry }}">{{ registry|escape }}
+                                </label>
                             {% endfor %}
                         </div>
                     </div>
@@ -51,15 +87,16 @@
                         <button id="registry_clear" class="btn">Clear</button>
                     </div>
                 </div>
-
                 <div class="form-horizontal">
                     <div id="country" class="control-group">
                         <label class="control-label">国名</label>
                         <div class="controls">
-                                <label class="checkbox"><input type="checkbox" id="country_all">ALL</label>
-                                <hr>
+                            <label class="checkbox"><input type="checkbox" id="country_all">ALL</label>
+                            <hr>
                             {% for cc in countries %}
-                                <label class="checkbox"><input type="checkbox" class="cc" value="{{ cc }}">{{ cc|escape }}</label>
+                                <label class="checkbox">
+                                    <input type="checkbox" class="cc" value="{{ cc }}">{{ cc|escape }}
+                                </label>
                             {% endfor %}
                         </div>
                     </div>
@@ -70,6 +107,7 @@
                     </div>
                 </div>
             </div>
+
         	<div id="viewbar" class="span8">
                 <div id="load_circle" style="position: absolute; left: 56%; top: 200px; display: none;">
                     <div class="circle"></div><div class="circle1"></div>
