@@ -57,9 +57,10 @@ class DataStoreHandler(webapp.RequestHandler):
             del values[i + 1:j]
         
     def post(self):
-        global reghash_keyname
+        """
         global header_rule
         global record_rule
+        """
 
         registry = self.request.get('registry')
 
@@ -67,23 +68,21 @@ class DataStoreHandler(webapp.RequestHandler):
             cache = memcache.get(common.REGISTRY_CONTENT % registry) #@UndefinedVariable
             data = cache['data']
             crc = cache['crc']
+        except TypeError, te:
+            logging.error(te)
+            return False
+
+        try:
             content = zlib.decompress(data)
             if common.CRC32Check(content) != crc:
                 logging.error('memcache "%s" be dameged.' % registry)
                 return False
-        except TypeError, te:
-            logging.error(te)
-            return False
         except zlib.error:
             logging.error('zlib Decompress Error. "%s"' % registry)
             return False
 
         # 取得したIP一覧を改行コードで分割
-        try:
-            contents = content.split('\n')
-        except UnboundLocalError, ule:
-            logging.error('%s' % ule)
-            return False
+        contents = content.split('\n')
 
         # 前回のハッシュ値を取得
         hashlist = common.ReadRecord(common.HASH_KEYNAME, registry)
@@ -121,11 +120,9 @@ class DataStoreHandler(webapp.RequestHandler):
                 if record:
                     ipobj = ips.IP(record.group(2), record.group(3),
                             record.group(4), record.group(5), record.group(6))
-                    try:
-                        ipdict[record.group(1)].append(ipobj)
-                    except KeyError:
+                    if not ipdict.has_key(record.group(1)):
                         ipdict[record.group(1)] = []
-                        ipdict[record.group(1)].append(ipobj)
+                    ipdict[record.group(1)].append(ipobj)
 
             if len(ipdict) == 0:
                 return False
