@@ -2,19 +2,13 @@
 (function() {
   ﻿;
 
-  var Pagination, ShowTable, jsondata, pager, pagination_count, pagination_length, root, view_count;
+  var CClear, CReset, CTextReplace, CustomTextPlus, FormCCClear, FormRegClear, Pagination, ShowTable, custom_area, default_custom_text, jsondata, pager, pagination_count, root, view_count;
 
   view_count = 100;
 
   pagination_count = 5;
 
   root = typeof exports !== "undefined" && exports !== null ? exports : this;
-
-  jsondata = [];
-
-  pagination_length = 0;
-
-  pager = NaN;
 
   $.fn.state = function(state) {
     var d;
@@ -30,6 +24,10 @@
       }
     });
   };
+
+  pager = NaN;
+
+  jsondata = [];
 
   $.fn.UpdateTable = function(data) {
     var $this;
@@ -104,9 +102,11 @@
         this.nav_count = this.total_page;
       }
       if (this.total_page <= 1 || this.total_page < this.current_page) {
-        return this.elements.empty();
+        this.elements.empty();
+        return this.elements.css('display', 'none');
       } else {
-        return this.MakeNavigator(this.current_page);
+        this.MakeNavigator(this.current_page);
+        return this.elements.css('display', 'block');
       }
     },
     MakeNavigator: function(current) {
@@ -161,7 +161,7 @@
     }
   };
 
-  $('#registry_save').click(function() {
+  $('#registry .save').click(function() {
     var checks, num;
     checks = (function() {
       var _i, _len, _ref, _results;
@@ -176,10 +176,10 @@
     $(this).UpdateTable({
       'registry': checks.join(',')
     });
-    return $('#country_clear').click();
+    return FormCCClear.click();
   });
 
-  $('#country_save').click(function() {
+  $('#country .save').click(function() {
     var checks, num;
     checks = (function() {
       var _i, _len, _ref, _results;
@@ -194,7 +194,7 @@
     $(this).UpdateTable({
       'country': checks.join(',')
     });
-    return $('#registry_clear').click();
+    return FormRegClear.click();
   });
 
   $('#registry .rir').click(function() {
@@ -209,7 +209,7 @@
     }
   });
 
-  $('#registry_all').click(function() {
+  $('#registry .all').click(function() {
     if (this.checked) {
       return $('#registry input').attr('checked', 'checked');
     } else {
@@ -217,7 +217,7 @@
     }
   });
 
-  $('#country_all').click(function() {
+  $('#country .all').click(function() {
     if (this.checked) {
       return $('#country input').attr('checked', 'checked');
     } else {
@@ -225,12 +225,130 @@
     }
   });
 
-  $('#registry_clear').click(function() {
+  FormRegClear = $('#registry .clear').click(function() {
     return $('#registry input').removeAttr('checked');
   });
 
-  $('#country_clear').click(function() {
+  FormCCClear = $('#country .clear').click(function() {
     return $('#country input').removeAttr('checked');
+  });
+
+  custom_area = $('#custom input');
+
+  default_custom_text = "<CC>: <IPSTART>-<IPEND>";
+
+  CustomTextPlus = function(value) {
+    var setting_text;
+    setting_text = custom_area.attr('value');
+    setting_text += value;
+    return custom_area.attr('value', setting_text);
+  };
+
+  $('#custom .set_registry').click(function() {
+    CustomTextPlus("<REGISTRY>");
+    return CTextReplace.keyup();
+  });
+
+  $('#custom .set_country').click(function() {
+    CustomTextPlus("<CC>");
+    return CTextReplace.keyup();
+  });
+
+  $('#custom .set_ipstart').click(function() {
+    CustomTextPlus("<IPSTART>");
+    return CTextReplace.keyup();
+  });
+
+  $('#custom .set_ipend').click(function() {
+    CustomTextPlus("<IPEND>");
+    return CTextReplace.keyup();
+  });
+
+  CReset = $('#custom .reset').click(function() {
+    CClear.click();
+    CustomTextPlus(default_custom_text);
+    return CTextReplace.keyup();
+  });
+
+  CClear = $('#custom .clear').click(function() {
+    custom_area.attr('value', '');
+    return CTextReplace.keyup();
+  });
+
+  CTextReplace = custom_area.keyup(function() {
+    var str, value;
+    value = $(this).attr('value');
+    str = $.trim(value);
+    str = str.replace(/<REGISTRY>/g, "APNIC");
+    str = str.replace(/<CC>/g, "JP");
+    str = str.replace(/<IPSTART>/g, "192.168.0.0");
+    str = str.replace(/<IPEND>/g, "192.168.0.255");
+    return $("#custom .result").text(str);
+  });
+
+  $("#custom .output").click(function() {
+    var custom_text, custom_value, json, output, str, _i, _len;
+    custom_value = custom_area.attr('value');
+    custom_text = $.trim(custom_value);
+    if (jsondata.length > 0) {
+      output = "";
+      for (_i = 0, _len = jsondata.length; _i < _len; _i++) {
+        json = jsondata[_i];
+        str = custom_text.replace(/<REGISTRY>/g, json.registry);
+        str = str.replace(/<CC>/g, json.country);
+        str = str.replace(/<IPSTART>/g, json.StartIP);
+        str = str.replace(/<IPEND>/g, json.EndIP);
+        output += str + '<br>';
+      }
+    } else {
+      output = '<p>出力したい項目が選択されていません。</p>';
+      output += '<a href="/" class="btn">Back</a>';
+    }
+    return $("body").html(output);
+  });
+
+  $("#custom .download").click(function() {
+    var country_checks, custom_text, custom_value, list, num, output, registry_checks;
+    registry_checks = (function() {
+      var _i, _len, _ref, _results;
+      _ref = $('#registry .rir:checked');
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        num = _ref[_i];
+        _results.push(num.value);
+      }
+      return _results;
+    })();
+    country_checks = (function() {
+      var _i, _len, _ref, _results;
+      _ref = $('#country .cc:checked');
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        num = _ref[_i];
+        _results.push(num.value);
+      }
+      return _results;
+    })();
+    if (registry_checks.length > 0 && country_checks.length > 0) {
+      return alert("レジストリ側、国名側の両方のチェックボックスにチェックが入っています。\n" + "どちらか片方のチェックボックスをクリアして、再度行ってください。");
+    } else if (registry_checks.length === 0 && country_checks.length === 0) {
+      return alert("レジストリ側、国名側の両方のチェックボックスにチェックが入っていません。\n" + "どちらか片方のチェックボックスを選択して、再度行ってください。");
+    } else {
+      custom_value = custom_area.attr('value');
+      custom_text = $.trim(custom_value);
+      if (registry_checks.length > 0) {
+        list = registry_checks.join(',');
+        output = "?registry=" + list;
+      } else {
+        list = country_checks.join(',');
+        output = "?country=" + list;
+      }
+      return location.href = encodeURI("/jsoncustom" + output + "&settings=" + custom_text);
+    }
+  });
+
+  $("#custom").ready(function() {
+    return CReset.click();
   });
 
   $(document).ready(function() {

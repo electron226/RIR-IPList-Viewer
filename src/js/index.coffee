@@ -1,17 +1,21 @@
-﻿# 1ページに表示する数
+﻿# -------------------------------------------------------------
+# 自由に設定
+# -------------------------------------------------------------
+
+# 1ページに表示する数
 view_count = 100
 
 # ページネーションに表示するページ数
 pagination_count = 5
 
 # -------------------------------------------------------------
+# スクリプト内で使用する直接設定しない変数など
+# -------------------------------------------------------------
 
 root = exports ? this
 
-jsondata = []
-pagination_length = 0
-pager = NaN
-
+# -------------------------------------------------------------
+# Save Changesボタンが押されたら、Loadingと表示するのに使用
 # -------------------------------------------------------------
 
 $.fn.state = (state) ->
@@ -25,8 +29,11 @@ $.fn.state = (state) ->
             $this.removeClass(d).removeAttr(d)
 
 # -------------------------------------------------------------
+# IP一覧の更新処理
+# -------------------------------------------------------------
+pager = NaN
+jsondata = []
 
-# 更新処理
 $.fn.UpdateTable = (data) ->
     # 読み込みアニメーションなどの表示
     $("#load_circle").css('display', 'inline')
@@ -77,6 +84,8 @@ ShowTable = (first, last) ->
         $("#viewbar tbody").html(str)
 
 # -------------------------------------------------------------
+# ページネーション
+# -------------------------------------------------------------
 
 $.fn.pagination = (options) ->
     options.elements = if options.elements? then options.elements else $(@)
@@ -112,8 +121,10 @@ Pagination.prototype = {
         if @total_page <= 1 || @total_page < @current_page
             # 前回の結果が残っている場合があるため、表示されている要素をクリア
             @elements.empty()
+            @elements.css('display', 'none')
         else
             @MakeNavigator(@current_page)
+            @elements.css('display', 'block')
 
     MakeNavigator: (current) ->
         # 現在、表示している要素を削除
@@ -172,22 +183,24 @@ Pagination.prototype = {
     }
 
 # -------------------------------------------------------------
+# フォームボタンなど
+# -------------------------------------------------------------
 
 # レジストリのチェックボックスの結果を有効
-$('#registry_save').click ->
+$('#registry .save').click ->
     checks = (num.value for num in $('#registry .rir:checked'))
 
     $(@).UpdateTable {'registry': checks.join(',')}
 
-    $('#country_clear').click()
+    FormCCClear.click()
 
 # 国名のチェックボックスの結果を有効
-$('#country_save').click ->
+$('#country .save').click ->
     checks = (num.value for num in $('#country .cc:checked'))
 
     $(@).UpdateTable {'country': checks.join(',')}
 
-    $('#registry_clear').click()
+    FormRegClear.click()
 
 # -------------------------------------------------------------
 
@@ -206,14 +219,14 @@ $('#country .cc').click ->
 # -------------------------------------------------------------
 
 # レジストリを全てチェック
-$('#registry_all').click ->
+$('#registry .all').click ->
     if @.checked
         $('#registry input').attr 'checked', 'checked'
     else
         $('#registry input').removeAttr 'checked'
 
 # 国名を全てチェック
-$('#country_all').click ->
+$('#country .all').click ->
     if @.checked
         $('#country input').attr 'checked', 'checked'
     else
@@ -222,14 +235,106 @@ $('#country_all').click ->
 # -------------------------------------------------------------
 
 # レジストリのチェックを全てクリア
-$('#registry_clear').click ->
+FormRegClear = $('#registry .clear').click ->
     $('#registry input').removeAttr 'checked'
 
 # 国名のチェックを全てクリア
-$('#country_clear').click ->
+FormCCClear = $('#country .clear').click ->
     $('#country input').removeAttr 'checked'
 
 # -------------------------------------------------------------
+# モーダルウィンドウ(カスタマイズ)
+# -------------------------------------------------------------
+custom_area = $('#custom input')
+default_custom_text = "<CC>: <IPSTART>-<IPEND>"
+
+CustomTextPlus = (value) ->
+    setting_text = custom_area.attr('value')
+    setting_text += value
+    custom_area.attr('value', setting_text)
+
+$('#custom .set_registry').click ->
+    CustomTextPlus("<REGISTRY>")
+    CTextReplace.keyup()
+
+$('#custom .set_country').click ->
+    CustomTextPlus("<CC>")
+    CTextReplace.keyup()
+
+$('#custom .set_ipstart').click ->
+    CustomTextPlus("<IPSTART>")
+    CTextReplace.keyup()
+
+$('#custom .set_ipend').click ->
+    CustomTextPlus("<IPEND>")
+    CTextReplace.keyup()
+
+CReset = $('#custom .reset').click ->
+    CClear.click()
+
+    CustomTextPlus(default_custom_text)
+    CTextReplace.keyup()
+
+CClear = $('#custom .clear').click ->
+    custom_area.attr('value', '')
+    CTextReplace.keyup()
+
+CTextReplace = custom_area.keyup ->
+    value = $(@).attr('value')
+    str = $.trim(value)
+
+    # 指定文字列の置き換え
+    str = str.replace(/<REGISTRY>/g, "APNIC")
+    str = str.replace(/<CC>/g, "JP")
+    str = str.replace(/<IPSTART>/g, "192.168.0.0")
+    str = str.replace(/<IPEND>/g, "192.168.0.255")
+
+    $("#custom .result").text(str)
+
+$("#custom .output").click ->
+    custom_value = custom_area.attr('value')
+    custom_text = $.trim(custom_value)
+    
+    if jsondata.length > 0
+        output = ""
+        for json in jsondata
+            str = custom_text.replace(/<REGISTRY>/g, json.registry)
+            str = str.replace(/<CC>/g, json.country)
+            str = str.replace(/<IPSTART>/g, json.StartIP)
+            str = str.replace(/<IPEND>/g, json.EndIP)
+            output += str + '<br>'
+    else
+        output = '<p>出力したい項目が選択されていません。</p>'
+        output += '<a href="/" class="btn">Back</a>'
+
+    $("body").html(output)
+
+$("#custom .download").click ->
+    registry_checks = (num.value for num in $('#registry .rir:checked'))
+    country_checks = (num.value for num in $('#country .cc:checked'))
+    if registry_checks.length > 0 and country_checks.length > 0
+        alert "レジストリ側、国名側の両方のチェックボックスにチェックが入っています。\n" \
+              + "どちらか片方のチェックボックスをクリアして、再度行ってください。"
+    else if registry_checks.length == 0 and country_checks.length == 0
+        alert "レジストリ側、国名側の両方のチェックボックスにチェックが入っていません。\n" \
+              + "どちらか片方のチェックボックスを選択して、再度行ってください。"
+    else
+        custom_value = custom_area.attr('value')
+        custom_text = $.trim(custom_value)
+
+        if registry_checks.length > 0
+            list = registry_checks.join(',')
+            output = "?registry=" + list
+        else
+            list = country_checks.join(',')
+            output = "?country=" + list
+        location.href = encodeURI("/jsoncustom" + output + "&settings=" + custom_text)
+
+$("#custom").ready ->
+    CReset.click()
+
+# -------------------------------------------------------------
+# ページ表示時に実行
+# -------------------------------------------------------------
 $(document).ready ->
     $('#JavaScript_OFF').css('display', 'none')
-

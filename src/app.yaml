@@ -7,28 +7,38 @@ handlers:
 - url: /favicon\.ico
   static_files: favicon.ico
   upload: favicon\.ico
+
 - url: /cron
   script: main.py
   login: admin
+
 - url: /datastore
   script: main.py
   login: admin
+
 - url: /json
   script: main.py
-  login: admin
+
+- url: /jsoncustom
+  script: main.py
+
 - url: /bootstrap
   static_dir: bootstrap
+
 - url: /css
   static_dir: css
+
 - url: /js
   static_dir: js
+
 - url: /less
   static_dir: less
+
 - url: /ajax
   static_dir: ajax
+  
 - url: .*
   script: main.py
-  login: admin
 
 builtins:
   - remote_api: on

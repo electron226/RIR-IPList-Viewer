@@ -162,6 +162,45 @@ class GetJSONHandler(webapp.RequestHandler):
         self.response.content_type = "application/json"
         self.response.out.write(ccjson)
 
+class GetJSONCustomHandler(webapp.RequestHandler):
+    def get(self):
+        registry = self.request.get('registry')
+        if registry:
+            registries = registry.split(',')
+            jsonlist = GetRegistriesCache(registries)
+            if len(jsonlist) == 0:
+                jsonlist = GetRegistriesRecords(registries)
+        else:
+            country = self.request.get('country')
+            if country:
+                country = self.request.get('country')
+                if country:
+                    countries = country.split(',')
+                    jsonlist = GetCountriesCache(countries)
+                    if len(jsonlist) == 0:
+                        jsonlist = []
+                        countries30 = common.Split_Seq(countries, 30)
+                        for cclist in countries30:
+                            jsonlist += GetCountriesRecords(cclist)
+            else:
+                # 空
+                jsonlist = [{"country" : "", "registry": "", "StartIP": "", "EndIP": ""}]
+
+        jsonlist.sort(lambda x, y: cmp(x["country"], y["country"]));
+        jsonlist.sort(lambda x, y: cmp(x["registry"], y["registry"]));
+
+        settings = self.request.get('settings')
+        if settings:
+            liststr = ""
+            for json in jsonlist:
+                tempstr = settings.replace(r'<REGISTRY>', json["registry"])
+                tempstr = tempstr.replace(r'<CC>', json["country"])
+                tempstr = tempstr.replace(r'<IPSTART>', json["StartIP"])
+                liststr += tempstr.replace(r'<IPEND>', json["EndIP"])
+                liststr += "<br>"
+            self.response.content_type = "text/plain"
+            self.response.out.write(liststr)
+
 class CronHandler(webapp.RequestHandler):
     def get(self):
         ipl = iplist.IPList()
@@ -198,6 +237,7 @@ def main():
     application = webapp.WSGIApplication([
         ('/', MainHandler),
         ('/json', GetJSONHandler),
+        ('/jsoncustom', GetJSONCustomHandler),
         ('/cron', CronHandler), 
         ('/datastore', datastore.DataStoreHandler), 
         ], debug=True)
