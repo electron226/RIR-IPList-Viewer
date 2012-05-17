@@ -132,30 +132,35 @@ def GetCountriesRecords(countries):
 
     return jsonlist
 
+def GetJSONSwitch(handler):
+    registry = handler.request.get('registry')
+    if registry:
+        registries = registry.split(',')
+        jsonlist = GetRegistriesCache(registries)
+        if len(jsonlist) == 0:
+            jsonlist = GetRegistriesRecords(registries)
+    else:
+        country = handler.request.get('country')
+        if country:
+            countries = country.split(',')
+            jsonlist = GetCountriesCache(countries)
+            if len(jsonlist) == 0:
+                jsonlist = []
+                countries30 = common.Split_Seq(countries, 30)
+                for cclist in countries30:
+                    jsonlist += GetCountriesRecords(cclist)
+        else:
+            # 空
+            jsonlist = [{"country" : "", "registry": "", "StartIP": "", "EndIP": ""}]
+
+    jsonlist.sort(lambda x, y: cmp(x["country"], y["country"]));
+    jsonlist.sort(lambda x, y: cmp(x["registry"], y["registry"]));
+
+    return jsonlist
+
 class GetJSONHandler(webapp.RequestHandler):
     def get(self):
-        registry = self.request.get('registry')
-        if registry:
-            registries = registry.split(',')
-            jsonlist = GetRegistriesCache(registries)
-            if len(jsonlist) == 0:
-                jsonlist = GetRegistriesRecords(registries)
-        else:
-            country = self.request.get('country')
-            if country:
-                countries = country.split(',')
-                jsonlist = GetCountriesCache(countries)
-                if len(jsonlist) == 0:
-                    jsonlist = []
-                    countries30 = common.Split_Seq(countries, 30)
-                    for cclist in countries30:
-                        jsonlist += GetCountriesRecords(cclist)
-            else:
-                # 空
-                jsonlist = [{"country" : "", "registry": "", "StartIP": "", "EndIP": ""}]
-
-        jsonlist.sort(lambda x, y: cmp(x["country"], y["country"]));
-        jsonlist.sort(lambda x, y: cmp(x["registry"], y["registry"]));
+        jsonlist = GetJSONSwitch(self)
 
         ccjson = simplejson.dumps(jsonlist)
 
@@ -164,30 +169,7 @@ class GetJSONHandler(webapp.RequestHandler):
 
 class GetJSONCustomHandler(webapp.RequestHandler):
     def get(self):
-        registry = self.request.get('registry')
-        if registry:
-            registries = registry.split(',')
-            jsonlist = GetRegistriesCache(registries)
-            if len(jsonlist) == 0:
-                jsonlist = GetRegistriesRecords(registries)
-        else:
-            country = self.request.get('country')
-            if country:
-                country = self.request.get('country')
-                if country:
-                    countries = country.split(',')
-                    jsonlist = GetCountriesCache(countries)
-                    if len(jsonlist) == 0:
-                        jsonlist = []
-                        countries30 = common.Split_Seq(countries, 30)
-                        for cclist in countries30:
-                            jsonlist += GetCountriesRecords(cclist)
-            else:
-                # 空
-                jsonlist = [{"country" : "", "registry": "", "StartIP": "", "EndIP": ""}]
-
-        jsonlist.sort(lambda x, y: cmp(x["country"], y["country"]));
-        jsonlist.sort(lambda x, y: cmp(x["registry"], y["registry"]));
+        jsonlist = GetJSONSwitch(self)
 
         settings = self.request.get('settings')
         if settings:
