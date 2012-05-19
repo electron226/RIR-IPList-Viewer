@@ -292,10 +292,10 @@ CTextReplace = custom_area.keyup ->
     $("#custom .result").text(str)
 
 $("#custom .output").click ->
-    custom_value = custom_area.attr('value')
-    custom_text = $.trim(custom_value)
-    
     if jsondata.length > 0
+        custom_value = custom_area.attr('value')
+        custom_text = $.trim(custom_value)
+    
         output = ""
         for json in jsondata
             str = custom_text.replace(/<REGISTRY>/g, json.registry)
@@ -303,11 +303,10 @@ $("#custom .output").click ->
             str = str.replace(/<IPSTART>/g, json.StartIP)
             str = str.replace(/<IPEND>/g, json.EndIP)
             output += str + '<br>'
-    else
-        output = '<p>出力したい項目が選択されていません。</p>'
-        output += '<a href="/" class="btn">Back</a>'
 
-    $("body").html(output)
+        $("body").html(output)
+    else
+        alert "データが取得されていません。"
 
 $("#custom .download").click ->
     registry_checks = (num.value for num in $('#registry .rir:checked'))
@@ -317,7 +316,7 @@ $("#custom .download").click ->
               + "どちらか片方のチェックボックスをクリアして、再度行ってください。"
     else if registry_checks.length == 0 and country_checks.length == 0
         alert "レジストリ側、国名側の両方のチェックボックスにチェックが入っていません。\n" \
-              + "どちらか片方のチェックボックスを選択して、再度行ってください。"
+              + "どちらか片方の取得したいチェックボックスを選択して、再度行ってください。"
     else
         custom_value = custom_area.attr('value')
         custom_text = $.trim(custom_value)

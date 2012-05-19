@@ -288,9 +288,9 @@
 
   $("#custom .output").click(function() {
     var custom_text, custom_value, json, output, str, _i, _len;
-    custom_value = custom_area.attr('value');
-    custom_text = $.trim(custom_value);
     if (jsondata.length > 0) {
+      custom_value = custom_area.attr('value');
+      custom_text = $.trim(custom_value);
       output = "";
       for (_i = 0, _len = jsondata.length; _i < _len; _i++) {
         json = jsondata[_i];
@@ -300,11 +300,10 @@
         str = str.replace(/<IPEND>/g, json.EndIP);
         output += str + '<br>';
       }
+      return $("body").html(output);
     } else {
-      output = '<p>出力したい項目が選択されていません。</p>';
-      output += '<a href="/" class="btn">Back</a>';
+      return alert("データが取得されていません。");
     }
-    return $("body").html(output);
   });
 
   $("#custom .download").click(function() {
@@ -332,7 +331,7 @@
     if (registry_checks.length > 0 && country_checks.length > 0) {
       return alert("レジストリ側、国名側の両方のチェックボックスにチェックが入っています。\n" + "どちらか片方のチェックボックスをクリアして、再度行ってください。");
     } else if (registry_checks.length === 0 && country_checks.length === 0) {
-      return alert("レジストリ側、国名側の両方のチェックボックスにチェックが入っていません。\n" + "どちらか片方のチェックボックスを選択して、再度行ってください。");
+      return alert("レジストリ側、国名側の両方のチェックボックスにチェックが入っていません。\n" + "どちらか片方の取得したいチェックボックスを選択して、再度行ってください。");
     } else {
       custom_value = custom_area.attr('value');
       custom_text = $.trim(custom_value);

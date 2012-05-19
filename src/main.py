@@ -133,15 +133,15 @@ def GetCountriesRecords(countries):
 
     return jsonlist
 
-def GetJSONSwitch(handler):
-    registry = handler.request.get('registry')
+def GetJSONSwitch(self):
+    registry = self.request.get('registry')
     if registry:
         registries = registry.split(',')
         jsonlist = GetRegistriesCache(registries)
         if len(jsonlist) == 0:
             jsonlist = GetRegistriesRecords(registries)
     else:
-        country = handler.request.get('country')
+        country = self.request.get('country')
         if country:
             countries = country.split(',')
             jsonlist = GetCountriesCache(countries)
