@@ -57,9 +57,15 @@
                         <div class="controls">
                             <label class="checkbox"><input type="checkbox" class="all">ALL</label>
                             <hr>
-                            {% for cc in countries %}
+                            {% for cc, name in countries %}
                                 <label class="checkbox">
-                                    <input type="checkbox" class="cc" value="{{ cc }}">{{ cc|escape }}
+                                    <table>
+                                    	<tr>
+                                    		<td style="width: 30px;"><input type="checkbox" class="cc" value="{{ cc }}">{{ cc|escape }}</td>
+<td>{{ name|escape }}</td>
+
+                                    	</tr>
+                                    </table>
                                 </label>
                             {% endfor %}
                         </div>

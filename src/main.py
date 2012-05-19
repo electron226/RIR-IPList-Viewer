@@ -37,6 +37,7 @@ import common
 import ips
 import iplist
 import datastore
+import ccdict
 
 def GetCreateJSONListFromCache(countries, registry):
     tempdict = memcache.get_multi(countries, registry)
@@ -198,8 +199,17 @@ class MainHandler(webapp.RequestHandler):
                                 if instance.usepickle else instance.cache
             all_countries_cache += cclist
         all_countries_cache = list(set(all_countries_cache))
-        all_countries_cache.sort()
 
+        # 国名の文字コードと国名を辞書型で設定
+        ccdict_name = ccdict.countries_dict
+        all_countries_dict = {}
+        for country in all_countries_cache:
+            if ccdict_name.has_key(country):
+                all_countries_dict[country] = ccdict_name[country]
+            else:
+                all_countries_dict[country] = ''
+
+        # 取得済みのレジストリの取得
         exist_rir = []
         for reg in common.RIR.keys():
             rir = common.IPStore.gql(
@@ -210,7 +220,8 @@ class MainHandler(webapp.RequestHandler):
         exist_rir.sort()
         
         template_values = { 'rir' : exist_rir,
-                            'countries' : all_countries_cache,
+                            'countries' : sorted(all_countries_dict.items(),
+                                lambda x, y: cmp(x, y)),
                             }
         path = os.path.join(os.path.dirname(__file__), 'index.html')
         self.response.out.write(template.render(path, template_values))
