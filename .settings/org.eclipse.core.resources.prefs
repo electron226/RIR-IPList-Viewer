@@ -1,7 +1,7 @@
 eclipse.preferences.version=1
+encoding//src/ccdict.py=utf-8
 encoding//src/common.py=utf-8
 encoding//src/datastore.py=utf-8
 encoding//src/iplist.py=utf-8
 encoding//src/ips.py=utf-8
 encoding//src/main.py=utf-8
-encoding//src/memcachelock.py=utf-8

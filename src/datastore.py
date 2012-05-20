@@ -7,7 +7,6 @@ import logging
 
 from django.utils import simplejson
 from google.appengine.ext import webapp
-from google.appengine.ext import db
 from google.appengine.api import memcache
 
 import common
@@ -150,7 +149,7 @@ class DataStoreHandler(webapp.RequestHandler):
             common.WriteRecord(common.HASH_KEYNAME, registry, newhash, False)
 
             # memcache Update
-            memcache.set_multi(memcache_dict, memcache_time, registry)
+            memcache.set_multi(memcache_dict, memcache_time, registry) #@UndefinedVariable
 
             logging.info('Get Update IPList End. "%s"' % registry)
             logging.info('Update complete the "%s".' % registry)

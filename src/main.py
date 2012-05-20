@@ -18,7 +18,6 @@
 import os
 import logging
 import pickle
-import types
 
 # DJANGO
 os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
@@ -28,7 +27,7 @@ use_library('django', '1.2')
 
 from django.utils import simplejson
 
-from google.appengine.api import memcache
+from google.appengine.api import memcache #@UndefinedVariable
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import util
 from google.appengine.ext.webapp import template
@@ -40,7 +39,7 @@ import datastore
 import ccdict
 
 def GetCreateJSONListFromCache(countries, registry):
-    tempdict = memcache.get_multi(countries, registry)
+    tempdict = memcache.get_multi(countries, registry) #@UndefinedVariable
     if len(tempdict) == 0:
         logging.error("GetCreateJSONListFromCache(): memcache.get_multi(): \
                         key: %s prefix: %s" % (countries, registry))
@@ -67,7 +66,7 @@ def GetCreateJSONListFromCache(countries, registry):
 def GetRegistriesCache(registries):
     jsonlist = []
     for registry in registries:
-        ccdict = memcache.get_multi([common.COUNTRIES_KEYNAME], registry)
+        ccdict = memcache.get_multi([common.COUNTRIES_KEYNAME], registry) #@UndefinedVariable
 
         # 取得できなかった場合、エラーとして空リストを返す
         if not ccdict.has_key(common.COUNTRIES_KEYNAME):
@@ -83,7 +82,7 @@ def GetRegistriesCache(registries):
 def GetCountriesCache(cclist):
     jsonlist = []
     for registry in common.RIR:
-        ccdict = memcache.get_multi([common.COUNTRIES_KEYNAME], registry)
+        ccdict = memcache.get_multi([common.COUNTRIES_KEYNAME], registry) #@UndefinedVariable
 
         # 取得できなかった場合、エラーとして空リストを返す
         if not ccdict.has_key(common.COUNTRIES_KEYNAME):
