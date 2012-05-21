@@ -6,8 +6,9 @@ import zlib
 import logging
 
 from django.utils import simplejson
-from google.appengine.ext import webapp
 from google.appengine.api import memcache
+from google.appengine.ext import webapp
+from google.appengine.ext import db
 
 import common
 import ips
@@ -56,15 +57,10 @@ class DataStoreHandler(webapp.RequestHandler):
             del values[i + 1:j]
         
     def post(self):
-        """
-        global header_rule
-        global record_rule
-        """
-
         registry = self.request.get('registry')
 
         try:
-            cache = memcache.get(common.REGISTRY_CONTENT % registry) #@UndefinedVariable
+            cache = memcache.get(common.MEMCACHE_CONTENT % registry) #@UndefinedVariable
             data = cache['data']
             crc = cache['crc']
         except TypeError, te:
@@ -147,6 +143,9 @@ class DataStoreHandler(webapp.RequestHandler):
 
             # Update Hash
             common.WriteRecord(common.HASH_KEYNAME, registry, newhash, False)
+
+            # 更新日時更新
+            common.WriteDate(registry)
 
             # memcache Update
             memcache.set_multi(memcache_dict, memcache_time, registry) #@UndefinedVariable

@@ -6,25 +6,26 @@
 
 @circle_shadow_color: #2187e7;
 
-.animation (@options) {
-    animation         : @options;
-    -ms-animation     : @options;
-    -o-animation      : @options;
-    -moz-animation    : @options;
-    -webkit-animation : @options;
+.animation (@settings) {
+    animation         : @settings;
+    -ms-animation     : @settings;
+    -o-animation      : @settings;
+    -moz-animation    : @settings;
+    -webkit-animation : @settings;
 }
 
 .circle_base (@size) {
-	@border_size     : 5px;
-	background-color : rgba(0, 0, 0, 0);
-	border           : @border_size solid rgba(0, 183, 229, 0.9);
-	border-right     : @border_size solid rgba(0, 0, 0, 0);
-	border-left      : @border_size solid rgba(0, 0, 0, 0);
-	border-radius    : 50px;
-	.opacity(.9);
-	width            : @size;
-	height           : @size;
-	margin           : 0 auto;
+    @border_size     : 5px;
+
+    background-color : rgba(0,0,0,0);
+    border           : @border_size solid rgba(0, 183, 229, 0.9);
+    .opacity(90);
+    border-right     : @border_size solid rgba(0, 0, 0, 0);
+    border-left      : @border_size solid rgba(0, 0, 0, 0);
+    border-radius    : 50px;
+    width            : @size;
+    height           : @size;
+    margin           : 0 auto;
 }
 
 .circle {
@@ -36,9 +37,9 @@
 .circle1 {
     .circle_base(30px);
     .box-shadow(0 0 15px @circle_shadow_color);
-	position : relative;
-	top      : -50px;
-	.animation(spinoffPulse 1s infinite linear);
+	position           : relative;
+	top                : -50px;
+    .animation(spinoffPulse 1s infinite linear);
 }
 
 .spin_keyframes {
@@ -49,7 +50,7 @@
     }
 	50% {
         .rotate(145deg);
-        .opacity(1);
+        .opacity(100);
     }
 	100% {
         .rotate(-320deg);

@@ -3,6 +3,7 @@
 import pickle
 import logging
 import zlib
+import datetime
 
 from google.appengine.api import memcache
 from google.appengine.ext import db
@@ -10,18 +11,29 @@ from google.appengine.ext import db
 # ----------------------------------------------------------------------------
 # 取得先
 RIR = {
-        'ARIN':'http://ftp.apnic.net/stats/arin/delegated-arin-latest',
-        'APNIC':'http://ftp.apnic.net/stats/apnic/delegated-apnic-latest',
-        'RIPE':'http://ftp.apnic.net/stats/ripe-ncc/delegated-ripencc-latest',
-        'LACNIC':'http://ftp.apnic.net/stats/lacnic/delegated-lacnic-latest',
-        'AFRINIC':'http://ftp.apnic.net/stats/afrinic/delegated-afrinic-latest'
+        'ARIN'    : 'http://ftp.apnic.net/stats/arin/delegated-arin-latest',
+        'APNIC'   : 'http://ftp.apnic.net/stats/apnic/delegated-apnic-latest',
+        'RIPE'    : 'http://ftp.apnic.net/stats/ripe-ncc/delegated-ripencc-latest',
+        'LACNIC'  : 'http://ftp.apnic.net/stats/lacnic/delegated-lacnic-latest',
+        'AFRINIC' : 'http://ftp.apnic.net/stats/afrinic/delegated-afrinic-latest',
         }
 
-# データベースに保存されるデータのキー名
-# "%s"部分は文字列に置き換えられる
-REGISTRY_CONTENT = '%s_CONTENT' # 取得したデータの一時保存用(memcache用)
+# 取得先の担当地域
+RIREXP = {
+        'ARIN'    : ['北アメリカ'],
+        'APNIC'   : ['アジア', '太平洋'],
+        'RIPE'    : ['ヨーロッパ', '中東', '中央アジア'],
+        'LACNIC'  : ['ラテンアメリカ', 'カリブ海'],
+        'AFRINIC' : ['アフリカ'], 
+        }
 
-HASH_KEYNAME = 'HASH'
+# memcache用
+# "%s"部分は文字列に置き換えられる
+MEMCACHE_CONTENT    = '%s_CONTENT' # 取得したデータの一時保存用
+MEMCACHE_LASTUPDATE = 'LASTUPDATE' # 最後の更新日時の一時保存用
+
+# データベースに保存されるデータのキー名
+HASH_KEYNAME      = 'HASH'
 COUNTRIES_KEYNAME = 'COUNTRIES'
 
 # ----------------------------------------------------------------------------
@@ -31,6 +43,33 @@ def Split_Seq(seq, size):
 
 def CRC32Check(string):
     return zlib.crc32(string) & 0xFFFFFFFF
+
+# ----------------------------------------------------------------------------
+
+class UpdateDate(db.Model):
+    registry = db.StringProperty(required = True)
+    time = db.DateTimeProperty(required = True)
+
+def GetLastUpdateDate():
+    query = UpdateDate.gql("ORDER BY time DESC")
+    qget = query.get()
+    return qget
+
+def tWriteDate(registry):
+    time = datetime.datetime.utcnow()
+    dateobj = UpdateDate(registry = registry, time = time)
+    key = dateobj.put()
+    return key
+
+def WriteDate(registry):
+    DeleteDate(registry)
+    key = db.run_in_transaction(tWriteDate, registry)
+    return key
+
+def DeleteDate(registry):
+    query = UpdateDate.gql("WHERE registry = :1", registry)
+    for one_query in query:
+        db.run_in_transaction(tClean, one_query)
 
 # ----------------------------------------------------------------------------
 
@@ -63,27 +102,33 @@ def WriteRecord(name, registry, value, usepickle):
     DeleteRecord(name, registry)
 
     key = db.run_in_transaction(tWrite, name, registry, value, usepickle)
+
+    memcache.delete(MEMCACHE_LASTUPDATE)
     return key
 
 def tClean(query):
-    query = db.get(query)
     db.delete(query)
 
 def DeleteRecord(name, registry):
     query = IPStore.gql("WHERE name = :1 AND registry = :2", name, registry)
     qfetch = query.fetch(100)
     while len(qfetch) != 0:
-        db.run_in_transaction(tClean, query)
+        for one_query in qfetch:
+            db.run_in_transaction(tClean, one_query)
         qfetch = query.fetch(100)
 
 def ClearRecord(registry):
     query = IPStore.gql("WHERE registry = :1", registry)
     qfetch = query.fetch(100)
     while len(qfetch) != 0:
-        db.run_in_transaction(tClean, query)
+        for one_query in qfetch:
+            db.run_in_transaction(tClean, one_query)
         qfetch = query.fetch(100)
 
 def ClearAll():
     if not memcache.flush_all(): #@UndefinedVariable
         logging.error('memcache flush_all failure.')
-    db.run_in_transaction(tClean, IPStore.add())
+    for registry in RIR:
+        ClearRecord(registry)
+
+# ----------------------------------------------------------------------------

@@ -22,7 +22,7 @@ class IPList():
 
         cache_data = { 'data': zlib.compress(result.content),
                        'crc': common.CRC32Check(result.content) }
-        if not memcache.set(common.REGISTRY_CONTENT % registry, cache_data, 300): #@UndefinedVariable
+        if not memcache.set(common.MEMCACHE_CONTENT % registry, cache_data, 300): #@UndefinedVariable
             raise RuntimeError, 'Set memcache failure. "%s"' % registry
 
     def create_callback(self, rpc, registry):

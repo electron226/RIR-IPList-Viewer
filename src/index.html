@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="description" content="APNICなどからIP一覧を取得、表示">
     <meta name="keywords" content="IPv4, IPv6, APNIC, ARIN, LACNIC, AFRINIC, ICNAA, RIPE">
-    <title>IP Viewer</title>
-    <!-- <link rel="shortcut icon" href="favicon.ico"> -->
+    <title>IPv4 Viewer</title>
+    <link rel="shortcut icon" href="favicon.ico">
     <link type="text/css" rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
     <link type="text/css" rel="stylesheet" href="bootstrap/css/bootstrap-responsive.min.css">
     <link media="all" rel="stylesheet" href="css/style.min.css" type="text/css">
@@ -17,12 +17,16 @@
             <div class="container">
                 <!-- ナビバー -->
                 <a class="brand" href="#">
-                    IP Viewer
+                    IPv4 Viewer
                 </a>
                 <ul class="nav">
-                	<li><a href="/">トップ</a></li>
-                	<li><a href="#usage" data-toggle="modal">使用方法</a></li>
+                	<li class="active"><a href="/">トップ</a></li>
+                	<li><a href="#usage" data-toggle="modal">このサイトについて</a></li>
                 	<li><a href="#custom" data-toggle="modal">カスタマイズ</a></li>
+                </ul>
+                <ul class="nav pull-right">
+                    <li class="divider-vertical"></li>
+                    <li><a href="#">一覧更新日時(JST): {{ lastupdate }}</a></li>
                 </ul>
             </div>
         </div>
@@ -38,9 +42,18 @@
                         <div class="controls">
                             <label class="checkbox"><input type="checkbox" class="all">ALL</label>
                             <hr>
-                            {% for registry in rir %}
+                            {% for registry, explist in rir %}
                                 <label class="checkbox">
-                                    <input type="checkbox" class="rir" value="{{ registry }}">{{ registry|escape }}
+                                    <table>
+                                    	<tr>
+                                    		<td style="width: 55px;"><input type="checkbox" class="rir" value="{{ registry }}">{{ registry|escape }}</td>
+                                            <td>
+                                            {% for exp in explist %}
+                                                {{ exp|escape }}<br>
+                                            {% endfor %}
+                                            </td>
+                                    	</tr>
+                                    </table>
                                 </label>
                             {% endfor %}
                         </div>
@@ -123,11 +136,29 @@
     <div id="usage" class="modal hide fade">
     	<div class="modal-header">
     		<button class="close" data-dismiss="modal">x</button>
-            <h3>使用方法</h3>
+            <h3>このサイトについて</h3>
     	</div>
 
         <div class="modal-body">
-        	<p>BODY</p>
+        	<p>このサイトは下記のサイトからIP割当一覧を取得、表示することができます。<br>
+            現在、対応しているのはIPv4のみです。更新は日本時間、午前9時10分ごろに毎日行われます。</p>
+            <ul>
+            	<li><a href="http://www.afrinic.net/" target="_blank">AFRINIC</a></li>
+            	<li><a href="http://www.apnic.net/" target="_blank">APNIC</a></li>
+            	<li><a href="https://www.arin.net/" target="_blank">ARIN</a></li>
+            	<li><a href="http://lacnic.net/" target="_blank">LACNIC</a></li>
+            	<li><a href="http://www.ripe.net/" target="_blank">RIPE</a></li>
+            </ul>
+
+            <h3 style="border-bottom:solid 1px lightgray; padding-top: 20px;">ページ説明</h3>
+            <dl>
+            	<dt>トップページ</dt>
+            	<dd>このページでは取得したいレジストリ・国名を選択し、サーバからIP割当一覧を取得することができます。</dd>
+            	<dt>このサイトについて</dt>
+            	<dd>このページです。</dd>
+            	<dt>カスタマイズ</dt>
+            	<dd>IP割当一覧を自分の好きな形式で出力することができます。</dd>
+            </dl>
         </div>
 
         <div class="modal-footer">
@@ -141,6 +172,7 @@
     		<button class="close" data-dismiss="modal">x</button>
             <h3>カスタマイズ</h3>
             <h5>現在、取得している一覧を指定した形式に加工し、出力します。<br>
+                「サーバから出力」を使用する場合、トップページで取得したい項目にチェックが必要です。<br>
                 大量のデータを取得する場合は、「サーバから出力」の使用をおすすめします。</h5>
     	</div>
 
@@ -181,9 +213,9 @@
     <script src="http://remysharp.com/downloads/html5.js" type="text/javascript"></script>
     <style type="text/css">
     <!--
-        article,aside,canvas,details,figcaption,figure,
-        footer,header,hgroup,menu,nav,section,summary{
-        　　display:block;
+        article, aside, canvas, details, figcaption, figure,
+        footer, header, hgroup, menu, nav, section, summary{
+        　　display: block;
         }
     -->
     </style>

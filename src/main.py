@@ -18,6 +18,7 @@
 import os
 import logging
 import pickle
+import datetime
 
 # DJANGO
 os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
@@ -209,18 +210,30 @@ class MainHandler(webapp.RequestHandler):
                 all_countries_dict[country] = ''
 
         # 取得済みのレジストリの取得
-        exist_rir = []
+        exist_rir = {}
         for reg in common.RIR.keys():
             rir = common.IPStore.gql(
                     "WHERE name = :1 AND registry = :2", common.HASH_KEYNAME, reg)
             rirhash = rir.get()
             if rirhash:
-                exist_rir.append(reg)
-        exist_rir.sort()
+                exist_rir[reg] = common.RIREXP[reg]
+
+        # 最後の更新日時のデータを取得
+        lastupdate = memcache.get(common.MEMCACHE_LASTUPDATE)
+        if not lastupdate:
+            timerecord = common.GetLastUpdateDate()
+            if timerecord:
+                uptime = timerecord.time
+                uptime += datetime.timedelta(hours = 9)
+                lastupdate = uptime.strftime("%Y/%m/%d %H:%M:%S")
+                if not memcache.set(common.MEMCACHE_LASTUPDATE, lastupdate):
+                    logging.error("Can't set memcache of last update time.")
         
-        template_values = { 'rir' : exist_rir,
+        template_values = { 'rir' : sorted(exist_rir.items(),
+                                            lambda x, y: cmp(x, y)),
                             'countries' : sorted(all_countries_dict.items(),
                                 lambda x, y: cmp(x, y)),
+                            'lastupdate' : lastupdate,
                             }
         path = os.path.join(os.path.dirname(__file__), 'index.html')
         self.response.out.write(template.render(path, template_values))
