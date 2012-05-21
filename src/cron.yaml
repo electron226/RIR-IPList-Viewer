@@ -2,3 +2,4 @@ cron:
 - description: daily summary job
   url: /cron
   schedule: every day 0:10
+  target: backend

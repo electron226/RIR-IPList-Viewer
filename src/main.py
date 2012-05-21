@@ -35,7 +35,7 @@ def GetCreateJSONListFromCache(countries, registry):
     # エラーとして空リストを返す
     for country in countries:
         if not tempdict.has_key(country):
-            logging.error("GetCreateJSONListFromCache(): %s" % country)
+            logging.warning("GetCreateJSONListFromCache(): %s" % country)
             return []
 
     jsonlist = []
@@ -56,7 +56,7 @@ def GetRegistriesCache(registries):
 
         # 取得できなかった場合、エラーとして空リストを返す
         if not ccdict.has_key(common.COUNTRIES_KEYNAME):
-            logging.error(
+            logging.warning(
                     "GetRegistriesCache(): No Get memcache.: %s" % registry)
             return []
 
@@ -72,7 +72,7 @@ def GetCountriesCache(cclist):
 
         # 取得できなかった場合、エラーとして空リストを返す
         if not ccdict.has_key(common.COUNTRIES_KEYNAME):
-            logging.error(
+            logging.warning(
                     "GetCountriesCache(): No Get memcache.: %s" % registry)
             return []
 

@@ -57,7 +57,8 @@ class IPList():
         for registry in registries.iterkeys():
             task = taskqueue.Task(
                     url = '/datastore', 
-                    params = {'registry': registry})
+                    params = {'registry': registry},
+                    target = 'backend')
             tasklist.append(task)
         datastore_task.add(tasklist)
 
