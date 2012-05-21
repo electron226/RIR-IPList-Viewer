@@ -1,40 +1,27 @@
+@import "../bootstrap/less/mixins.less";
+
 // --------------------------------------------------------------------------
 // 読み込みアニメーション
 // --------------------------------------------------------------------------
 
 @circle_shadow_color: #2187e7;
 
-.set_box-shadow (@horizontal, @vertical, @gradation, @color){
-	box-shadow         : @horizontal @vertical @gradation @circle_shadow_color;
-	-ms-box-shadow     : @horizontal @vertical @gradation @circle_shadow_color;
-	-o-box-shadow      : @horizontal @vertical @gradation @circle_shadow_color;
-	-moz-box-shadow    : @horizontal @vertical @gradation @circle_shadow_color;
-	-webkit-box-shadow : @horizontal @vertical @gradation @circle_shadow_color;
-}
-
-.set_animation (@name, @duraction, @timing, @delay){
-    animation         : @name @duraction @timing @delay;
-    -ms-animation     : @name @duraction @timing @delay;
-    -o-animation      : @name @duraction @timing @delay;
-    -moz-animation    : @name @duraction @timing @delay;
-    -webkit-animation : @name @duraction @timing @delay;
-}
-
-.set_transform (@radius) {
-    transform         : @radius;
-    -ms-transform     : @radius;
-    -o-transform      : @radius;
-    -moz-transform    : @radius;
-    -webkit-transform : @radius;
+.animation (@options) {
+    animation         : @options;
+    -ms-animation     : @options;
+    -o-animation      : @options;
+    -moz-animation    : @options;
+    -webkit-animation : @options;
 }
 
 .circle_base (@size) {
-	background-color : rgba(0,0,0,0);
-	border           : 5px solid rgba(0, 183, 229, 0.9);
-	opacity          : .9;
-	border-right     : 5px solid rgba(0, 0, 0, 0);
-	border-left      : 5px solid rgba(0, 0, 0, 0);
+	@border_size     : 5px;
+	background-color : rgba(0, 0, 0, 0);
+	border           : @border_size solid rgba(0, 183, 229, 0.9);
+	border-right     : @border_size solid rgba(0, 0, 0, 0);
+	border-left      : @border_size solid rgba(0, 0, 0, 0);
 	border-radius    : 50px;
+	.opacity(.9);
 	width            : @size;
 	height           : @size;
 	margin           : 0 auto;
@@ -42,45 +29,40 @@
 
 .circle {
     .circle_base(50px);
-
-    .set_box-shadow(0, 0, 35px, @circle_shadow_color);
-
-    .set_animation(spinPulse, 1s, infinite, ease-in-out);
+    .box-shadow(0 0 35px @circle_shadow_color);
+    .animation(spinPulse 1s infinite ease-in-out);
 }
 
 .circle1 {
     .circle_base(30px);
-
-    .set_box-shadow(0, 0, 15px, @circle_shadow_color);
-	position           : relative;
-	top                : -50px;
-
-    .set_animation(spinoffPulse, 1s, infinite, linear);
+    .box-shadow(0 0 15px @circle_shadow_color);
+	position : relative;
+	top      : -50px;
+	.animation(spinoffPulse 1s infinite linear);
 }
 
 .spin_keyframes {
 	0% {
-        .set_transform(rotate(160deg));
-        opacity            : 0;
-
-        .set_box-shadow(0, 0, 1px, @circle_shadow_color);
+        .rotate(160deg);
+        .opacity(0);
+        .box-shadow(0 0 1px @circle_shadow_color);
     }
 	50% {
-        .set_transform(rotate(145deg));
-        opacity: 1;
+        .rotate(145deg);
+        .opacity(1);
     }
 	100% {
-        .set_transform(rotate(-320deg));
-        opacity: 0;
+        .rotate(-320deg);
+        .opacity(0);
     }
 }
 
 .spinoff_keyframes {
     0% {
-        .set_transform(rotate(0deg));
+        .rotate(0deg);
     }
     100% {
-        .set_transform(rotate(360deg));
+        .rotate(360deg);
     }
 }
 
