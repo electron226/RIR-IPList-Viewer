@@ -4,12 +4,36 @@
 
 @circle_shadow_color: #2187e7;
 
+.set_box-shadow (@horizontal, @vertical, @gradation, @color){
+	box-shadow         : @horizontal @vertical @gradation @circle_shadow_color;
+	-ms-box-shadow     : @horizontal @vertical @gradation @circle_shadow_color;
+	-o-box-shadow      : @horizontal @vertical @gradation @circle_shadow_color;
+	-moz-box-shadow    : @horizontal @vertical @gradation @circle_shadow_color;
+	-webkit-box-shadow : @horizontal @vertical @gradation @circle_shadow_color;
+}
+
+.set_animation (@name, @duraction, @timing, @delay){
+    animation         : @name @duraction @timing @delay;
+    -ms-animation     : @name @duraction @timing @delay;
+    -o-animation      : @name @duraction @timing @delay;
+    -moz-animation    : @name @duraction @timing @delay;
+    -webkit-animation : @name @duraction @timing @delay;
+}
+
+.set_transform (@radius) {
+    transform         : @radius;
+    -ms-transform     : @radius;
+    -o-transform      : @radius;
+    -moz-transform    : @radius;
+    -webkit-transform : @radius;
+}
+
 .circle_base (@size) {
 	background-color : rgba(0,0,0,0);
-	border           : 5px solid rgba(0,183,229,0.9);
+	border           : 5px solid rgba(0, 183, 229, 0.9);
 	opacity          : .9;
-	border-right     : 5px solid rgba(0,0,0,0);
-	border-left      : 5px solid rgba(0,0,0,0);
+	border-right     : 5px solid rgba(0, 0, 0, 0);
+	border-left      : 5px solid rgba(0, 0, 0, 0);
 	border-radius    : 50px;
 	width            : @size;
 	height           : @size;
@@ -19,54 +43,65 @@
 .circle {
     .circle_base(50px);
 
-	box-shadow        : 0 0 35px @circle_shadow_color;
+    .set_box-shadow(0, 0, 35px, @circle_shadow_color);
 
-	-moz-animation    : spinPulse 1s infinite ease-in-out;
-	-webkit-animation : spinPulse 1s infinite linear;
+    .set_animation(spinPulse, 1s, infinite, ease-in-out);
 }
 
 .circle1 {
     .circle_base(30px);
 
-	box-shadow        : 0 0 15px @circle_shadow_color;
-	position          : relative;
-	top               : -50px;
+    .set_box-shadow(0, 0, 15px, @circle_shadow_color);
+	position           : relative;
+	top                : -50px;
 
-	@animation        : spinoffPulse 1s infinite linear;
-	-moz-animation    : @animation;
-	-webkit-animation : @animation;
-}
-
-.spin_transform (@radius) {
-    -moz-transform    : @radius;
-    -webkit-transform : @radius;
+    .set_animation(spinoffPulse, 1s, infinite, linear);
 }
 
 .spin_keyframes {
 	0% {
-        .spin_transform(rotate(160deg));
-        opacity    : 0;
-        box-shadow : 0 0 1px @circle_shadow_color;
+        .set_transform(rotate(160deg));
+        opacity            : 0;
+
+        .set_box-shadow(0, 0, 1px, @circle_shadow_color);
     }
 	50% {
-        .spin_transform(rotate(145deg));
+        .set_transform(rotate(145deg));
         opacity: 1;
     }
 	100% {
-        .spin_transform(rotate(-320deg));
+        .set_transform(rotate(-320deg));
         opacity: 0;
     }
 }
 
 .spinoff_keyframes {
     0% {
-        .spin_transform(rotate(0deg));
+        .set_transform(rotate(0deg));
     }
     100% {
-        .spin_transform(rotate(360deg));
+        .set_transform(rotate(360deg));
     }
 }
 
+@keyframes spinPulse {
+    .spin_keyframes
+}
+@keyframes spinoffPulse {
+    .spinoff_keyframes
+}
+@-ms-keyframes spinPulse {
+    .spin_keyframes
+}
+@-ms-keyframes spinoffPulse {
+    .spinoff_keyframes
+}
+@-o-keyframes spinPulse {
+    .spin_keyframes
+}
+@-o-keyframes spinoffPulse {
+    .spinoff_keyframes
+}
 @-moz-keyframes spinPulse {
     .spin_keyframes
 }
