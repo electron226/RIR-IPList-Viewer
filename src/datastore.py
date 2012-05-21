@@ -8,7 +8,6 @@ import logging
 from django.utils import simplejson
 from google.appengine.api import memcache
 from google.appengine.ext import webapp
-from google.appengine.ext import db
 
 import common
 import ips

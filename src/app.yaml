@@ -34,9 +34,6 @@ handlers:
 - url: /less
   static_dir: less
 
-- url: /ajax
-  static_dir: ajax
-  
 - url: .*
   script: main.py
 

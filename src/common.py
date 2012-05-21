@@ -103,7 +103,7 @@ def WriteRecord(name, registry, value, usepickle):
 
     key = db.run_in_transaction(tWrite, name, registry, value, usepickle)
 
-    memcache.delete(MEMCACHE_LASTUPDATE)
+    memcache.delete(MEMCACHE_LASTUPDATE) #@UndefinedVariable
     return key
 
 def tClean(query):

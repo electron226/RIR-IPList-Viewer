@@ -1,6 +1,5 @@
 ﻿#!/usr/bin/env python
 # vim: set fileencoding=utf-8
-
 import logging
 import zlib
 
@@ -23,7 +22,7 @@ class IPList():
         cache_data = { 'data': zlib.compress(result.content),
                        'crc': common.CRC32Check(result.content) }
         if not memcache.set(common.MEMCACHE_CONTENT % registry, cache_data, 300): #@UndefinedVariable
-            raise RuntimeError, 'Set memcache failure. "%s"' % registry
+            raise Exception('Set memcache failure. "%s"' % registry)
 
     def create_callback(self, rpc, registry):
         return lambda: self.handle_urlfetch(rpc, registry)
@@ -46,10 +45,10 @@ class IPList():
                 logging.error('Can\'t download the file.')
                 return False
             except zlib.error:
-                logging.error('Get "%s" failure. zlib Compress Error.' % registry)
+                logging.error('Get failure. zlib Compress Error.')
                 return False
-            except RuntimeError as re:
-                logging.error(re)
+            except Exception, e:
+                logging.error(e)
                 return False
 
         # タスクで取得したデータを処理

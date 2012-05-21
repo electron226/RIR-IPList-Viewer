@@ -4,7 +4,7 @@
 
   var CClear, CReset, CTextReplace, CustomTextPlus, FormCCClear, FormRegClear, Pagination, ShowTable, custom_area, default_custom_text, jsondata, pager, pagination_count, root, view_count;
 
-  view_count = 100;
+  view_count = 150;
 
   pagination_count = 5;
 

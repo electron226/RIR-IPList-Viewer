@@ -1,20 +1,5 @@
 #!/usr/bin/env python
 # vim: set fileencoding=utf-8
-#
-# Copyright 2007 Google Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
 import os
 import logging
 import pickle
@@ -34,10 +19,10 @@ from google.appengine.ext.webapp import util
 from google.appengine.ext.webapp import template
 
 import common
+import ccdict
+import datastore
 import ips
 import iplist
-import datastore
-import ccdict
 
 def GetCreateJSONListFromCache(countries, registry):
     tempdict = memcache.get_multi(countries, registry) #@UndefinedVariable
@@ -55,8 +40,8 @@ def GetCreateJSONListFromCache(countries, registry):
 
     jsonlist = []
     for country, ccjson in tempdict.iteritems():
-        iplist = simplejson.loads(ccjson)
-        for ipobj in iplist:
+        iplist_data = simplejson.loads(ccjson)
+        for ipobj in iplist_data:
             ip = ips.IPDecoder(ipobj)
             json = {"country" : country, "registry": registry,
                     "StartIP": ip.StartIP(), "EndIP": ip.EndIP()}
@@ -219,14 +204,14 @@ class MainHandler(webapp.RequestHandler):
                 exist_rir[reg] = common.RIREXP[reg]
 
         # 最後の更新日時のデータを取得
-        lastupdate = memcache.get(common.MEMCACHE_LASTUPDATE)
+        lastupdate = memcache.get(common.MEMCACHE_LASTUPDATE) #@UndefinedVariable
         if not lastupdate:
             timerecord = common.GetLastUpdateDate()
             if timerecord:
                 uptime = timerecord.time
                 uptime += datetime.timedelta(hours = 9)
                 lastupdate = uptime.strftime("%Y/%m/%d %H:%M:%S")
-                if not memcache.set(common.MEMCACHE_LASTUPDATE, lastupdate):
+                if not memcache.set(common.MEMCACHE_LASTUPDATE, lastupdate): #@UndefinedVariable
                     logging.error("Can't set memcache of last update time.")
         
         template_values = { 'rir' : sorted(exist_rir.items(),
