@@ -350,11 +350,25 @@ $("#custom").ready ->
     CReset.click()
 
 # -------------------------------------------------------------
+# ブラウザ判定
+# -------------------------------------------------------------
+CheckBrowserIE = ->
+    msie = navigator.appVersion.toLowerCase()
+    return if msie.indexOf('msie') > -1 \
+           then parseInt(msie.replace(/.*msie[ ]/,'').match(/^[0-9]+/)) \
+           else undefined
+
+# -------------------------------------------------------------
 # ページ表示時に実行
 # -------------------------------------------------------------
 $(document).ready ->
     ### JavaScriptが有効だった場合、エラー表示を隠す ###
     $('#JavaScript_OFF').css('display', 'none')
+
+    ### IE 8以下だった場合、警告を出す ###
+    ie = CheckBrowserIE()
+    if ie < 9
+        $('#NoBrowser').css('display', 'block')
 
     ### 表示行数設定のドロップダウンメニューのデフォルトの値をアクティブ ###
     $('#view_row li:eq(' + GetRowPoint(view_count) + ')').addClass('active')

@@ -2,7 +2,7 @@
 (function() {
   ﻿;
 
-  var CClear, CReset, CTextReplace, CustomTextPlus, FormCCClear, FormRegClear, GetRowPoint, Pagination, ShowTable, custom_area, default_custom_text, jsondata, pager, pagination_count, root, view_count;
+  var CClear, CReset, CTextReplace, CheckBrowserIE, CustomTextPlus, FormCCClear, FormRegClear, GetRowPoint, Pagination, ShowTable, custom_area, default_custom_text, jsondata, pager, pagination_count, root, view_count;
 
   view_count = 150;
 
@@ -370,12 +370,29 @@
     return CReset.click();
   });
 
+  CheckBrowserIE = function() {
+    var msie;
+    msie = navigator.appVersion.toLowerCase();
+    if (msie.indexOf('msie') > -1) {
+      return parseInt(msie.replace(/.*msie[ ]/, '').match(/^[0-9]+/));
+    } else {
+      return;
+    }
+  };
+
   $(document).ready(function() {
     /* JavaScriptが有効だった場合、エラー表示を隠す
     */
 
-    var $pageUp;
+    var $pageUp, ie;
     $('#JavaScript_OFF').css('display', 'none');
+    /* IE 8以下だった場合、警告を出す
+    */
+
+    ie = CheckBrowserIE();
+    if (ie < 9) {
+      $('#NoBrowser').css('display', 'block');
+    }
     /* 表示行数設定のドロップダウンメニューのデフォルトの値をアクティブ
     */
 
