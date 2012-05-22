@@ -1,7 +1,48 @@
 @import "../bootstrap/less/mixins.less";
 
 // --------------------------------------------------------------------------
-// 読み込みアニメーション
+// ページ上下ボタン
+// --------------------------------------------------------------------------
+@arrow_img: '../img/arrow.png';
+
+#movepage {
+    position : fixed;
+    top      : 75%;
+
+    a {
+        padding: 50px;
+        display: block;
+
+        font: 11px/100% Ariel, Helvetica, sans-serif;
+        text-align: center;
+        text-transform: uppercase;
+        text-decoration: none;
+        color: #bbb;
+
+        .transition(1s);
+
+        &:hover {
+            color: #000;
+        }
+    }
+
+    span {
+        padding: 50px 50px;
+        display  : block;
+        background: #ddd url(@arrow_img) no-repeat center center;
+
+        .border-radius(15px);
+        .transition(1s);
+        .opacity(80)
+    }
+
+    a:hover span {
+        background-color: #777;
+    }
+}
+
+// --------------------------------------------------------------------------
+// ローディングアニメーション
 // --------------------------------------------------------------------------
 
 @circle_shadow_color: #2187e7;

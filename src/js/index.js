@@ -2,7 +2,7 @@
 (function() {
   ﻿;
 
-  var CClear, CReset, CTextReplace, CustomTextPlus, FormCCClear, FormRegClear, Pagination, ShowTable, custom_area, default_custom_text, jsondata, pager, pagination_count, root, view_count;
+  var CClear, CReset, CTextReplace, CustomTextPlus, FormCCClear, FormRegClear, GetRowPoint, Pagination, ShowTable, custom_area, default_custom_text, jsondata, pager, pagination_count, root, view_count;
 
   view_count = 150;
 
@@ -69,6 +69,26 @@
       }
     }
     return $("#viewbar tbody").html(str);
+  };
+
+  root.ChangeRow = function(num) {
+    var params;
+    view_count = num;
+    $('#view_row .active').removeClass('active');
+    $('#view_row li:eq(' + GetRowPoint(num) + ')').addClass('active');
+    if (pager) {
+      ShowTable(0, view_count);
+      params = {
+        view_record: view_count,
+        total_record: pager.total_record,
+        nav_count: pagination_count
+      };
+      return pager = $("#view_pages").pagination(params);
+    }
+  };
+
+  GetRowPoint = function(num) {
+    return (num / 50) - 1;
   };
 
   $.fn.pagination = function(options) {
@@ -272,7 +292,7 @@
 
   CClear = $('#custom .clear').click(function() {
     custom_area.attr('value', '');
-    return CTextReplace.keyup();
+    return $("#custom .result").text("");
   });
 
   CTextReplace = custom_area.keyup(function() {
@@ -351,7 +371,37 @@
   });
 
   $(document).ready(function() {
-    return $('#JavaScript_OFF').css('display', 'none');
+    /* JavaScriptが有効だった場合、エラー表示を隠す
+    */
+
+    var $pageUp;
+    $('#JavaScript_OFF').css('display', 'none');
+    /* 表示行数設定のドロップダウンメニューのデフォルトの値をアクティブ
+    */
+
+    $('#view_row li:eq(' + GetRowPoint(view_count) + ')').addClass('active');
+    /* ページアップ・ダウンボタンの表示・非表示のタイミング設定
+    */
+
+    $pageUp = $("#movepage");
+    $pageUp.hide();
+    return $(function() {
+      $(window).scroll(function() {
+        var moveval;
+        moveval = $(this).scrollTop();
+        if (moveval > 100) {
+          return $pageUp.fadeIn();
+        } else {
+          return $pageUp.fadeOut();
+        }
+      });
+      return $pageUp.click(function() {
+        $('body, html').animate({
+          scrollTop: 0
+        }, 600);
+        return false;
+      });
+    });
   });
 
 }).call(this);

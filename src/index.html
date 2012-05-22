@@ -25,6 +25,20 @@
                 	<li><a href="#custom" data-toggle="modal">カスタマイズ</a></li>
                 </ul>
                 <ul class="nav pull-right">
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">表示行数
+                            <b class="caret"></b>
+                        </a>
+
+                        <ul id="view_row" class="dropdown-menu">
+                            <li><a href="#" onclick="ChangeRow(50)">50</a></li>
+                            <li><a href="#" onclick="ChangeRow(100)">100</a></li>
+                            <li><a href="#" onclick="ChangeRow(150)">150</a></li>
+                            <li><a href="#" onclick="ChangeRow(200)">200</a></li>
+                            <li><a href="#" onclick="ChangeRow(250)">250</a></li>
+                            <li><a href="#" onclick="ChangeRow(300)">300</a></li>
+                        </ul>
+                    </li>
                     <li class="divider-vertical"></li>
                     <li><a href="#">一覧更新日時(JST): {{ lastupdate }}</a></li>
                 </ul>
@@ -92,12 +106,13 @@
             </div>
 
         	<div id="viewbar" class="span8">
-                <div id="JavaScript_OFF" style="text-align:center; border: 5px solid #FF0000;">
+                <div id="JavaScript_OFF" style="padding-top: 10px; text-align:center; border: 5px solid #FF0000;">
                     <p>JavaScriptを有効にしてください。</p>
                 </div>
 
-                <div id="load_circle" style="position: absolute; left: 56%; top: 200px; display: none;">
-                    <div class="circle"></div><div class="circle1"></div>
+                <div id="NoBrowser" style="padding-top: 10px; text-align:center; border: 5px solid #FF0000; display: none;">
+                    <p>HTML5、CSS3に対応した最新のブラウザを使用してください。</p>
+                    <p>IE9, Firefox6以上のブラウザが必要です。</p>
                 </div>
 
                 <div id="view_pages" class="pagination" style="position: relative; left: 25%; display: none;">
@@ -106,6 +121,10 @@
                         <li></li>
                         <li></li>
                     </ul>
+                </div>
+
+                <div id="load_circle" style="position: absolute; left: 56%; top: 200px; display: none;">
+                    <div class="circle"></div><div class="circle1"></div>
                 </div>
 
                 <table class="table table.striped">
@@ -126,6 +145,12 @@
                         </tr>
                     </tbody>
                 </table>
+
+                <div class="span2 offset6">
+                    <div id="movepage">
+                        <a href="#top"><span></span></a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

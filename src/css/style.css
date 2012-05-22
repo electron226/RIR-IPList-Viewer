@@ -25,6 +25,45 @@
   -ms-box-sizing: border-box;
   box-sizing: border-box;
 }
+#movepage {
+  position: fixed;
+  top: 75%;
+}
+#movepage a {
+  padding: 50px;
+  display: block;
+  font: 11px/100% Ariel, Helvetica, sans-serif;
+  text-align: center;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: #bbb;
+  -webkit-transition: 1s;
+  -moz-transition: 1s;
+  -ms-transition: 1s;
+  -o-transition: 1s;
+  transition: 1s;
+}
+#movepage a:hover {
+  color: #000;
+}
+#movepage span {
+  padding: 50px 50px;
+  display: block;
+  background: #dddddd url('../img/arrow.png') no-repeat center center;
+  -webkit-border-radius: 15px;
+  -moz-border-radius: 15px;
+  border-radius: 15px;
+  -webkit-transition: 1s;
+  -moz-transition: 1s;
+  -ms-transition: 1s;
+  -o-transition: 1s;
+  transition: 1s;
+  opacity: 0.8;
+  filter: alpha(opacity=80);
+}
+#movepage a:hover span {
+  background-color: #777;
+}
 .circle {
   background-color: rgba(0, 0, 0, 0);
   border: 5px solid rgba(0, 183, 229, 0.9);

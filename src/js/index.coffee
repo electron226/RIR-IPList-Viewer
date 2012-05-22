@@ -15,7 +15,7 @@ pagination_count = 5
 root = exports ? this
 
 # -------------------------------------------------------------
-# Save Changesボタンが押されたら、Loadingと表示するのに使用
+# Save Changesボタンが押されたら、Loadingと表示させるのに使う
 # -------------------------------------------------------------
 
 $.fn.state = (state) ->
@@ -82,6 +82,25 @@ ShowTable = (first, last) ->
                 str += "</tr>"
 
         $("#viewbar tbody").html(str)
+
+# 指定された行数に変更
+root.ChangeRow = (num) ->
+    view_count = num
+    $('#view_row .active').removeClass('active')
+    $('#view_row li:eq(' + GetRowPoint(num) + ')').addClass('active')
+    if pager
+        # viewbarの更新
+        ShowTable 0, view_count
+
+        # ページネーションの更新
+        params =
+            view_record: view_count
+            total_record: pager.total_record
+            nav_count: pagination_count
+        pager = $("#view_pages").pagination(params)
+
+GetRowPoint = (num) ->
+    return (num / 50) - 1
 
 # -------------------------------------------------------------
 # ページネーション
@@ -204,14 +223,12 @@ $('#country .save').click ->
 
 # -------------------------------------------------------------
 
-# レジストリのチェックボックスを外した場合、
-# ALLにチェックがあったらはずす
+# レジストリのチェックボックスを外した場合、ALLにチェックがあったらはずす
 $('#registry .rir').click ->
     if $('#registry_all').attr 'checked'
         $('#registry_all').removeAttr 'checked'
 
-# 国名のチェックボックスを外した場合、
-# ALLにチェックがあったらはずす
+# 国名のチェックボックスを外した場合、ALLにチェックがあったらはずす
 $('#country .cc').click ->
     if $('#country_all').attr 'checked'
         $('#country_all').removeAttr 'checked'
@@ -277,7 +294,7 @@ CReset = $('#custom .reset').click ->
 
 CClear = $('#custom .clear').click ->
     custom_area.attr('value', '')
-    CTextReplace.keyup()
+    $("#custom .result").text("")
 
 CTextReplace = custom_area.keyup ->
     value = $(@).attr('value')
@@ -336,4 +353,27 @@ $("#custom").ready ->
 # ページ表示時に実行
 # -------------------------------------------------------------
 $(document).ready ->
+    ### JavaScriptが有効だった場合、エラー表示を隠す ###
     $('#JavaScript_OFF').css('display', 'none')
+
+    ### 表示行数設定のドロップダウンメニューのデフォルトの値をアクティブ ###
+    $('#view_row li:eq(' + GetRowPoint(view_count) + ')').addClass('active')
+
+    ### ページアップ・ダウンボタンの表示・非表示のタイミング設定 ###
+    $pageUp = $("#movepage")
+    $pageUp.hide()
+
+    $(->
+        $(window).scroll(->
+            moveval = $(@).scrollTop()
+            if moveval > 100
+                $pageUp.fadeIn()
+            else
+                $pageUp.fadeOut()
+        )
+
+        $pageUp.click(->
+            $('body, html').animate({ scrollTop: 0 }, 600)
+            return false
+        )
+    )
