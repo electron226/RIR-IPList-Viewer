@@ -1,5 +1,5 @@
-backends:
+﻿backends:
 - name: backend
-  class: B1
-  instances: 1
+  class: B2
+  instances: 5
   options: dynamic

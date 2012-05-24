@@ -20,7 +20,7 @@ class IPList():
             raise urlfetch.DownloadError
 
         cache_data = { 'data': zlib.compress(result.content),
-                       'crc': common.CRC32Check(result.content) }
+                       'crc': zlib.crc32(result.content) }
         if not memcache.set(common.MEMCACHE_CONTENT % registry, cache_data, 300): #@UndefinedVariable
             raise Exception('Set memcache failure. "%s"' % registry)
 

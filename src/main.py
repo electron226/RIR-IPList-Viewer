@@ -24,19 +24,8 @@ import datastore
 import ips
 import iplist
 
-def GetCreateJSONListFromCache(countries, registry):
-    tempdict = memcache.get_multi(countries, registry) #@UndefinedVariable
-    if len(tempdict) == 0:
-        logging.error("GetCreateJSONListFromCache(): memcache.get_multi(): \
-                        key: %s prefix: %s" % (countries, registry))
-        return []
-
-    # 一つでも取得できなかったデータがある場合、
-    # エラーとして空リストを返す
-    for country in countries:
-        if not tempdict.has_key(country):
-            logging.warning("GetCreateJSONListFromCache(): %s" % country)
-            return []
+def GetCreateJSONList(countries, registry):
+    tempdict = common.GetMultiData(countries, registry)
 
     jsonlist = []
     for country, ccjson in tempdict.iteritems():
@@ -49,113 +38,62 @@ def GetCreateJSONListFromCache(countries, registry):
 
     return jsonlist
 
-def GetRegistriesCache(registries):
+def GetRegistries(registries):
     jsonlist = []
     for registry in registries:
-        ccdict = memcache.get_multi([common.COUNTRIES_KEYNAME], registry) #@UndefinedVariable
-
-        # 取得できなかった場合、エラーとして空リストを返す
-        if not ccdict.has_key(common.COUNTRIES_KEYNAME):
-            logging.warning(
-                    "GetRegistriesCache(): No Get memcache.: %s" % registry)
-            return []
-
+        ccdict = common.GetMultiData([common.COUNTRIES_KEYNAME], registry)
         for countries in ccdict.itervalues():
-            jsonlist += GetCreateJSONListFromCache(countries, registry)
+            jsonlist += GetCreateJSONList(countries, registry)
 
     return jsonlist
 
-def GetCountriesCache(cclist):
+def GetCountries(cclist):
     jsonlist = []
     for registry in common.RIR:
-        ccdict = memcache.get_multi([common.COUNTRIES_KEYNAME], registry) #@UndefinedVariable
-
-        # 取得できなかった場合、エラーとして空リストを返す
-        if not ccdict.has_key(common.COUNTRIES_KEYNAME):
-            logging.warning(
-                    "GetCountriesCache(): No Get memcache.: %s" % registry)
-            return []
+        ccdict = common.GetMultiData([common.COUNTRIES_KEYNAME], registry)
 
         getlist = []
         for countries in ccdict.itervalues():
-            for cc in cclist:
-                if cc in countries:
-                    getlist.append(cc)
+            ccset = set(countries)
+            argset = set(cclist)
+            getlist += ccset.intersection(argset)
 
-        jsonlist += GetCreateJSONListFromCache(getlist, registry)
-
-    return jsonlist
-
-def GetRegistriesRecords(registries):
-    jsonlist = []
-    query = common.IPStore.gql("WHERE registry IN :1", registries)
-    for record in query:
-        # 国名データ以外はスキップ
-        if len(record.name) != 2:
-            continue
-
-        storecache = pickle.loads(record.cache) if record.usepickle else record.cache
-        cjson = simplejson.loads(storecache)
-        for ipobj in cjson:
-            ip = ips.IPDecoder(ipobj)
-            json = {"country" : record.name, "registry": record.registry,
-                    "StartIP": ip.StartIP(), "EndIP": ip.EndIP()}
-            jsonlist.append(json)
+        jsonlist += GetCreateJSONList(getlist, registry)
 
     return jsonlist
 
-def GetCountriesRecords(countries):
-    jsonlist = []
-    query = common.IPStore.gql("WHERE name IN :1", countries)
-    for record in query:
-        storecache = pickle.loads(record.cache) if record.usepickle else record.cache
-        cjson = simplejson.loads(storecache)
-        for ipobj in cjson:
-            ip = ips.IPDecoder(ipobj)
-            json = {"country" : record.name, "registry": record.registry,
-                    "StartIP": ip.StartIP(), "EndIP": ip.EndIP()}
-            jsonlist.append(json)
-
-    return jsonlist
-
-def GetJSONSwitch(self):
-    registry = self.request.get('registry')
-    if registry:
-        registries = registry.split(',')
-        jsonlist = GetRegistriesCache(registries)
-        if len(jsonlist) == 0:
-            jsonlist = GetRegistriesRecords(registries)
-    else:
-        country = self.request.get('country')
-        if country:
-            countries = country.split(',')
-            jsonlist = GetCountriesCache(countries)
-            if len(jsonlist) == 0:
-                jsonlist = []
-                countries30 = common.Split_Seq(countries, 30)
-                for cclist in countries30:
-                    jsonlist += GetCountriesRecords(cclist)
+class GetJSONBase(webapp.RequestHandler):
+    def GetJSONSwitch(self):
+        registry = self.request.get('registry')
+        if registry:
+            registries = registry.split(',')
+            jsonlist = GetRegistries(registries)
         else:
-            # 空
-            jsonlist = [{"country" : "", "registry": "", "StartIP": "", "EndIP": ""}]
+            country = self.request.get('country')
+            if country:
+                countries = country.split(',')
+                jsonlist = GetCountries(countries)
+            else:
+                # 空
+                jsonlist = [{"country" : "", "registry": "", "StartIP": "", "EndIP": ""}]
 
-    jsonlist.sort(lambda x, y: cmp(x["country"], y["country"]));
-    jsonlist.sort(lambda x, y: cmp(x["registry"], y["registry"]));
+        jsonlist.sort(lambda x, y: cmp(x["country"], y["country"]));
+        jsonlist.sort(lambda x, y: cmp(x["registry"], y["registry"]));
 
-    return jsonlist
+        return jsonlist
 
-class GetJSONHandler(webapp.RequestHandler):
+class GetJSONHandler(GetJSONBase):
     def get(self):
-        jsonlist = GetJSONSwitch(self)
+        jsonlist = self.GetJSONSwitch()
 
         ccjson = simplejson.dumps(jsonlist)
 
         self.response.content_type = "application/json"
         self.response.out.write(ccjson)
 
-class GetJSONCustomHandler(webapp.RequestHandler):
+class GetJSONCustomHandler(GetJSONBase):
     def get(self):
-        jsonlist = GetJSONSwitch(self)
+        jsonlist = self.GetJSONSwitch()
 
         settings = self.request.get('settings')
         if settings:
@@ -178,11 +116,11 @@ class MainHandler(webapp.RequestHandler):
     def get(self):
         # 全てのレジストリの国名データを取得
         all_countries_cache = []
-        query = common.IPStore.gql("WHERE name = :1", common.COUNTRIES_KEYNAME)
-        for instance in query:
-            cclist = pickle.loads(instance.cache) \
-                                if instance.usepickle else instance.cache
-            all_countries_cache += cclist
+        for registry in common.RIR.iterkeys():
+            recordlist = common.GetMultiData(
+                    [common.COUNTRIES_KEYNAME], registry)
+            for record in recordlist:
+                all_countries_cache += record
         all_countries_cache = list(set(all_countries_cache))
 
         # 国名の文字コードと国名を辞書型で設定
@@ -196,12 +134,10 @@ class MainHandler(webapp.RequestHandler):
 
         # 取得済みのレジストリの取得
         exist_rir = {}
-        for reg in common.RIR.keys():
-            rir = common.IPStore.gql(
-                    "WHERE name = :1 AND registry = :2", common.HASH_KEYNAME, reg)
-            rirhash = rir.get()
-            if rirhash:
-                exist_rir[reg] = common.RIREXP[reg]
+        rirrecords = common.IPStore.gql("WHERE name = :1", common.HASH_KEYNAME)
+        for record in rirrecords:
+            registry = record.registry
+            exist_rir[registry] = common.RIREXP[registry]
 
         # 最後の更新日時のデータを取得
         lastupdate = memcache.get(common.MEMCACHE_LASTUPDATE) #@UndefinedVariable
