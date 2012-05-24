@@ -74,19 +74,12 @@ class DataStoreHandler(webapp.RequestHandler):
     def post(self):
         registry = self.request.get('registry')
 
-        try:
-            cache = memcache.get(common.MEMCACHE_CONTENT % registry) #@UndefinedVariable
-            data = cache['data']
-            crc = cache['crc']
-        except TypeError, te:
-            logging.error(te)
+        cache = memcache.get(common.MEMCACHE_CONTENT % registry) #@UndefinedVariable
+        if not cache:
             return False
 
         try:
-            content = zlib.decompress(data)
-            if zlib.crc32(content) != crc:
-                logging.error('memcache "%s" be dameged.' % registry)
-                return False
+            content = zlib.decompress(cache)
         except zlib.error:
             logging.error('zlib Decompress Error. "%s"' % registry)
             return False

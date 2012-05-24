@@ -172,8 +172,12 @@ class MainHandler(webapp.RequestHandler):
         # 全てのレジストリの国名データを取得
         all_countries_cache = []
         for registry in common.RIR.iterkeys():
-            recordlist = common.GetMultiData(
-                    [common.COUNTRIES_KEYNAME], registry)
+            try:
+                recordlist = common.GetMultiData(
+                        [common.COUNTRIES_KEYNAME], registry)
+            except RuntimeError, re:
+                logging.warning(re)
+                continue
             all_countries_cache += recordlist[common.COUNTRIES_KEYNAME]
         all_countries_cache = list(set(all_countries_cache))
 
@@ -203,7 +207,7 @@ class MainHandler(webapp.RequestHandler):
                 lastupdate = uptime.strftime("%Y/%m/%d %H:%M:%S")
                 if not memcache.set(common.MEMCACHE_LASTUPDATE, lastupdate): #@UndefinedVariable
                     logging.error("Can't set memcache of last update time.")
-        
+
         template_values = { 'rir' : sorted(exist_rir.items(),
                                             lambda x, y: cmp(x, y)),
                             'countries' : sorted(all_countries_dict.items(),
