@@ -1,7 +1,13 @@
 ﻿#!/usr/bin/env python
 # vim: set fileencoding=utf-8
 
-#2012/5/20 更新
+##
+# @file ccdict.py
+# @brief 国名コードと国名の一覧
+# @author khz
+# @version 0.1
+# @date 2012-05-25
+
 countries_dict = {
         'AD': 'アンドラ',
         'AE': 'アラブ首長国連邦',
@@ -253,7 +259,3 @@ countries_dict = {
         'ZM': 'ザンビア',
         'ZW': 'ジンバブエ',
     }
-
-if __name__ == '__main__':
-    for k, v in sorted(countries_dict.iteritems()):
-        print "'" + k + "': '" + v + "',"

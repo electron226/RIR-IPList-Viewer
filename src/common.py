@@ -1,5 +1,11 @@
 ﻿#!/usr/bin/env python
 # vim: set fileencoding=utf-8
+
+##
+# @file common.py
+# @brief 全てのファイルで共通使用する
+# @author khz
+
 import pickle
 import logging
 import datetime
@@ -7,8 +13,7 @@ import datetime
 from google.appengine.api import memcache
 from google.appengine.ext import db
 
-# ----------------------------------------------------------------------------
-# 取得先
+## 割当リストの取得先
 RIR = {
         'ARIN'    : 'http://ftp.apnic.net/stats/arin/delegated-arin-latest',
         'APNIC'   : 'http://ftp.apnic.net/stats/apnic/delegated-apnic-latest',
@@ -17,7 +22,7 @@ RIR = {
         'AFRINIC' : 'http://ftp.apnic.net/stats/afrinic/delegated-afrinic-latest',
         }
 
-# 取得先の担当地域
+## 取得先の担当地域
 RIREXP = {
         'ARIN'    : ['北アメリカ'],
         'APNIC'   : ['アジア', '太平洋'],
@@ -26,55 +31,64 @@ RIREXP = {
         'AFRINIC' : ['アフリカ'], 
         }
 
-# memcache用
-# "%s"部分は文字列に置き換えられる
-MEMCACHE_CONTENT    = '%s_CONTENT' # 取得したデータの一時保存用
-MEMCACHE_LASTUPDATE = 'LASTUPDATE' # 最後の更新日時の一時保存用
+## 割当先から取得したデータの一時保存用キー。文字列の置き換え機能を使う。
+MEMCACHE_CONTENT    = '%s_CONTENT'
 
-# データベースに保存されるデータのキー名
+## 最後の更新日時の一時保存用
+MEMCACHE_LASTUPDATE = 'LASTUPDATE'
+
+## ハッシュキー名
 HASH_KEYNAME      = 'HASH'
+
+## 国名一覧のキー名
 COUNTRIES_KEYNAME = 'COUNTRIES'
 
-# IP一覧を保存する
-# memcacheの最大保存期間(秒)
-# 最高期間: 1ヶ月
+## IP一覧を保存する
+## memcacheの最大保存期間(秒)
+## 最高期間: 1ヶ月
 memcache_time = (129600)
 
 # ----------------------------------------------------------------------------
 
-# リストをsizeごとに分ける
-# seq : list
-# size : 分割サイズ
+##
+# @brief リストを特定サイズごとに分割。
+#
+# @param seq  分割するリスト
+# @param size 分割するサイズ
+#
+# @return 分割されたリストを含んだリスト
+# @throw  ValueError 最初の引数の値がリスト型ではない
 def Split_Seq(seq, size):
-    return [seq[i : i + size] for i in xrange(0, len(seq), size)]
+    if isinstance(seq, list):
+        return [seq[i : i + size] for i in xrange(0, len(seq), size)]
+    raise ValueError("Split_Seq(): argument error.")
 
 # ----------------------------------------------------------------------------
-
-def MemcacheDelete(keys, seconds = 0, key_prefix = "", namespace = None):
-    if isinstance(keys, list):
-        error = memcache.delete_multi(keys, seconds, key_prefix, namespace)
-
-        return error
-    else:
-        error = memcache.delete(keys, seconds) #@UndefinedVariable
-        if error == memcache.DELETE_NETWORK_FAILURE: #@UndefinedVariable
-            logging.error("MemcacheDelete(): Network failure.")
-
-            return False
-        return True
-
+# 更新日時関係のクラス・関数群
 # ----------------------------------------------------------------------------
 
+##
+# @brief レジストリの更新日時を記録するのに使うデータモデル。
 class UpdateDate(db.Model):
     registry = db.StringProperty(required = True)
     time = db.DateTimeProperty(required = True)
 
+##
+# @brief 最後の更新日時を取得。
+#
+# @return datetimeオブジェクト
 def GetLastUpdateDate():
     query = UpdateDate.gql("ORDER BY time DESC")
     date = query.get()
 
     return date
 
+##
+# @brief 現在のUTC時間を取得し、データストアに記録。トランザクション処理に使用。
+# 
+# @param registry 更新するレジストリ名
+#
+# @return 格納されたエンティティのKey
 def tWriteDate(registry):
     time = datetime.datetime.utcnow()
     dateobj = UpdateDate(registry = registry, time = time)
@@ -82,28 +96,55 @@ def tWriteDate(registry):
 
     return key
 
+##
+# @brief 更新日時を更新。
+#
+# @param registry 更新するレジストリ名
+#
+# @return 格納されたエンティティのKey
 def WriteDate(registry):
     DeleteDate(registry)
     key = db.run_in_transaction(tWriteDate, registry)
 
     return key
 
+##
+# @brief 指定したレジストリの更新日時の記録を削除。
+# 
+# @param registry 削除するレジストリ
+#
+# @return なし
 def DeleteDate(registry):
     query = UpdateDate.gql("WHERE registry = :1", registry)
     for one_query in query:
         db.run_in_transaction(tDelete, one_query)
 
     # memcacheにある最終更新日時を削除しておく
-    MemcacheDelete(MEMCACHE_LASTUPDATE) #@UndefinedVariable
+    memcache.delete(MEMCACHE_LASTUPDATE) #@UndefinedVariable
 
 # ----------------------------------------------------------------------------
+# IP一覧の保存・読み込みなどに使用するクラス・関数群
+# ----------------------------------------------------------------------------
 
+##
+# @brief IP割当一覧を保存するデータモデル。
 class IPStore(db.Model):
     name      = db.StringProperty(required = True)
     registry  = db.StringProperty(required = True)
     cache     = db.BlobProperty()
     usepickle = db.BooleanProperty()
 
+# 指定したキーでデータストア(IPStore)からデータを取得
+# 取得したデータはリストで返す
+# name : 名前
+# registry : レジストリ
+##
+# @brief 指定したキーでデータストアからデータを取得。
+#
+# @param kwargs 辞書型の可変長引数
+#               キー名にname(名前), registry(レジストリ名)のどちらか必要。
+#
+# @return 引数で指定
 def ReadRecord(**kwargs):
     name = kwargs.get('name')
     registry = kwargs.get('registry')
@@ -139,6 +180,18 @@ def ReadRecord(**kwargs):
 
     return cache_list
 
+##
+# @brief memcacheで検索し、なければデータストアから取得。
+#
+#        最初にmemcacheを検索して、データがあればそれを返す。
+#        データを取得できなければデータストアから取得。
+#        データストアから取得したデータはmemcacheに再登録する。
+#
+# @param keys 取得するキー名のリスト
+# @param prefix memcacheで使用するキー名の前につける文字列、
+#               データストアではレジストリ名として使われる。
+#
+# @return 取得したデータの辞書型。引数で使ったキー名に入っている。
 def GetMultiData(keys, prefix):
     cachedict = memcache.get_multi(keys, prefix) #@UndefinedVariable
 
@@ -184,6 +237,15 @@ def GetMultiData(keys, prefix):
         
     return cachedict
 
+##
+# @brief データストアに記録。トランザクション処理に使用。
+#
+# @param name 名前
+# @param registry レジストリ名
+# @param value 記録する値
+# @param usepickle valueを直列化して保存するかどうか(True, False)
+#
+# @return 格納したエンティティのキー
 def tWrite(name, registry, value, usepickle):
     store = IPStore(name = name,
                     registry = registry, 
@@ -193,6 +255,15 @@ def tWrite(name, registry, value, usepickle):
     key = store.put()
     return key
 
+##
+# @brief データストアのデータを更新する。
+#
+# @param name 名前
+# @param registry レジストリ名
+# @param value 記録する値
+# @param usepickle valueを直列化して保存するかどうか(True, False)
+#
+# @return 格納したエンティティのキー
 def WriteRecord(name, registry, value, usepickle):
     DeleteRecord(name = name, registry = registry)
 
@@ -200,9 +271,22 @@ def WriteRecord(name, registry, value, usepickle):
 
     return key
 
+##
+# @brief クエリを受け取り、クエリのデータを削除。
+#
+# @param query クエリ
+#
+# @return なし
 def tDelete(query):
     db.delete(query)
 
+##
+# @brief データストアからデータを削除
+#
+# @param kwargs 辞書型の可変長引数。
+#               キーにname(名前), registry(レジストリ名)のどちらかが必須。
+#
+# @return なし
 def DeleteRecord(**kwargs):
     name = kwargs.get('name')
     registry = kwargs.get('registry')
@@ -222,10 +306,14 @@ def DeleteRecord(**kwargs):
             db.run_in_transaction(tDelete, one_query)
         qfetch = query.fetch(100)
 
+##
+# @brief memcacheと全てのデータストアのデータを削除
+#
+# @return なし
 def ClearAll():
     if not memcache.flush_all(): #@UndefinedVariable
         logging.error('memcache flush_all failure.')
-    for registry in RIR:
-        DeleteRecord(registry = registry)
+    db.delete(IPStore.all())
+    db.delete(UpdateDate.all())
 
 # ----------------------------------------------------------------------------

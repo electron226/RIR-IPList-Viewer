@@ -1,5 +1,11 @@
 ﻿#!/usr/bin/env python
 # vim: set fileencoding=utf-8
+
+##
+# @file datastore.py
+# @brief IP割当一覧のデータストア書き込み
+# @author khz
+
 import re
 import hashlib
 import zlib
@@ -12,18 +18,27 @@ from google.appengine.ext import webapp
 import common
 import ips
 
-# ハッシュ値確認用
+## 正規表現(ハッシュ値確認用)
 header_rule = re.compile(r'\d{1}\|[a-z]+\|\d+\|\d+\|\d+\|\d+\|[+-]?\d+')
 
-# レコード用(IPv4)
-# xxx.xxx.xxx.xxx
-#  G2  G3  G4  G5
-# G1 = 国コード, G6 = 範囲
+##
+# @brief 正規表現(レコード用, IPv4)\n
+#        xxx.xxx.xxx.xxx\n
+#        G2  G3  G4  G5\n
+#        G1 = 国コード, G6 = 範囲
 record_rule = re.compile(r'([A-Z]{2})\|ipv4\|(\d+).(\d+).(\d+).(\d+)\|(\d+)')
 
+##
+# @brief リクエストを受け取り、更新処理を行う。
+# 
+#        更新に使うデータはIPListクラスで保存されている。
 class DataStoreHandler(webapp.RequestHandler):
-    # 最適化
-    # ccipdict : 国名別に分けられたIP一覧のdict
+    ##
+    # @brief 割当一覧の最適化(圧縮)処理。
+    #
+    # @param ccipdict 国名別に分けられたIP一覧の辞書型。中身を操作される。
+    #
+    # @return なし
     def Combine(self, ccipdict):
         for values in ccipdict.itervalues():
             if len(values) < 2:
@@ -50,6 +65,12 @@ class DataStoreHandler(webapp.RequestHandler):
             # 処理が行われず、参照する値が範囲外でも例外が発生しない
             del values[i + 1:j]
         
+    ##
+    # @brief リクエストを受け取り、更新処理を行う
+    #        
+    #        更新に使うデータはIPListクラスで保存されている。
+    #
+    # @return 更新が成功したか否か(True, False)
     def post(self):
         registry = self.request.get('registry')
 

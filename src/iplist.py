@@ -1,5 +1,11 @@
 ﻿#!/usr/bin/env python
 # vim: set fileencoding=utf-8
+
+##
+# @file iplist.py
+# @brief 割当リストの取得
+# @author khz
+
 import logging
 import zlib
 
@@ -9,9 +15,17 @@ from google.appengine.api import memcache
 
 import common
 
-# IP一覧をダウンロードするクラス
+##
+# @brief IP一覧をダウンロードするクラス
 class IPList():
-    # 取得したデータをzlibに圧縮してmemcacheに保存
+    ##
+    # @brief 結果を取得してデータをzlibに圧縮してmemcacheに保存
+    #
+    # @param rpc RPCオブジェクト
+    # @param registry 取得した更新先のレジストリ名
+    #
+    # @return なし
+    # @throw Exception 取得したデータを格納した辞書型をmemcacheに保存できない
     def handle_urlfetch(self, rpc, registry):
         logging.info('Download Start "%s".' % registry)
 
@@ -27,8 +41,12 @@ class IPList():
     def create_callback(self, rpc, registry):
         return lambda: self.handle_urlfetch(rpc, registry)
 
-    # 与えたURLのIP割当ファイルの更新を確認し、取得してデータベースに登録
-    # registries : 更新するregistryの一覧のdict型
+    ##
+    # @brief 与えたURLのIP割当ファイルの更新を確認し、取得してデータベースに登録
+    #
+    # @param registries 更新するレジストリの一覧の辞書型
+    #
+    # @return 成功したらTrue, 失敗したらFalse
     def retrieve(self, registries):
         # urlfetchで非同期接続
         rpcs = []

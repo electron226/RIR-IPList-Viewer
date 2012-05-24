@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 # vim: set fileencoding=utf-8
+
+##
+# @file main.py
+# @brief リクエストの処理
+# @author khz
+
 import os
 import logging
 import pickle
@@ -24,6 +30,13 @@ import datastore
 import ips
 import iplist
 
+##
+# @brief 指定した引数のデータを取得し、json形式のリストで返す
+#
+# @param countries 取得する国名のリスト
+# @param registry レジストリ名
+#
+# @return JSON形式のデータ
 def GetCreateJSONList(countries, registry):
     tempdict = common.GetMultiData(countries, registry)
 
@@ -38,6 +51,12 @@ def GetCreateJSONList(countries, registry):
 
     return jsonlist
 
+##
+# @brief 指定したレジストリのデータを取得し、json形式のリストで返す
+#
+# @param registries 取得するレジストリのリスト
+#
+# @return JSON形式のデータ
 def GetRegistries(registries):
     jsonlist = []
     for registry in registries:
@@ -47,6 +66,12 @@ def GetRegistries(registries):
 
     return jsonlist
 
+##
+# @brief 指定した国名のデータを取得し、json形式のリストで返す
+#
+# @param cclist 取得する国名のリスト
+#
+# @return JSON形式のデータ
 def GetCountries(cclist):
     jsonlist = []
     for registry in common.RIR:
@@ -62,7 +87,13 @@ def GetCountries(cclist):
 
     return jsonlist
 
+##
+# @brief JSONのリクエスト処理を行うクラスのベースクラス
 class GetJSONBase(webapp.RequestHandler):
+    ##
+    # @brief リクエストとともに渡された引数を受け取り、それを元にJSONを取得。
+    #
+    # @return JSON形式のデータ
     def GetJSONSwitch(self):
         registry = self.request.get('registry')
         if registry:
@@ -82,7 +113,13 @@ class GetJSONBase(webapp.RequestHandler):
 
         return jsonlist
 
+##
+# @brief AjaxでJSONデータを取得するのに使うクラス
 class GetJSONHandler(GetJSONBase):
+    ##
+    # @brief GETリクエストを受け取り、json形式のデータを出力する
+    #
+    # @return なし
     def get(self):
         jsonlist = self.GetJSONSwitch()
 
@@ -91,7 +128,13 @@ class GetJSONHandler(GetJSONBase):
         self.response.content_type = "application/json"
         self.response.out.write(ccjson)
 
+##
+# @brief サーバ側でJSONデータの加工処理を行うクラス
 class GetJSONCustomHandler(GetJSONBase):
+    ##
+    # @brief GETリクエストを受け取り、指定した形式でJSONデータを出力
+    #
+    # @return なし
     def get(self):
         jsonlist = self.GetJSONSwitch()
 
@@ -107,20 +150,31 @@ class GetJSONCustomHandler(GetJSONBase):
             self.response.content_type = "text/plain"
             self.response.out.write(liststr)
 
+##
+# @brief 定期的にスケジュール処理をするクラス
 class CronHandler(webapp.RequestHandler):
+    ##
+    # @brief リクエストを受け取ったら更新処理
+    #
+    # @return なし
     def get(self):
         ipl = iplist.IPList()
         ipl.retrieve(common.RIR)
 
+##
+# @brief トップページのリクエストを処理するクラス
 class MainHandler(webapp.RequestHandler):
+    ##
+    # @brief サイトのTOPページのリクエストを処理
+    #
+    # @return なし 
     def get(self):
         # 全てのレジストリの国名データを取得
         all_countries_cache = []
         for registry in common.RIR.iterkeys():
             recordlist = common.GetMultiData(
                     [common.COUNTRIES_KEYNAME], registry)
-            for record in recordlist:
-                all_countries_cache += record
+            all_countries_cache += recordlist[common.COUNTRIES_KEYNAME]
         all_countries_cache = list(set(all_countries_cache))
 
         # 国名の文字コードと国名を辞書型で設定
@@ -159,6 +213,10 @@ class MainHandler(webapp.RequestHandler):
         path = os.path.join(os.path.dirname(__file__), 'index.html')
         self.response.out.write(template.render(path, template_values))
 
+##
+# @brief webappを使った処理の開始
+#
+# @return なし
 def main():
     application = webapp.WSGIApplication([
         ('/', MainHandler),
@@ -169,5 +227,7 @@ def main():
         ], debug=True)
     util.run_wsgi_app(application)
 
+##
+# @brief スタート位置
 if __name__ == '__main__':
     main()
