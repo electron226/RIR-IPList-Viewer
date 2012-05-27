@@ -28,7 +28,7 @@ RIREXP = {
         'APNIC'   : ['アジア', '太平洋'],
         'RIPE'    : ['ヨーロッパ', '中東', '中央アジア'],
         'LACNIC'  : ['ラテンアメリカ', 'カリブ海'],
-        'AFRINIC' : ['アフリカ'], 
+        'AFRINIC' : ['アフリカ'],
         }
 
 ## 割当先から取得したデータの一時保存用キー。文字列の置き換え機能を使う。
@@ -85,7 +85,7 @@ def GetLastUpdateDate():
 
 ##
 # @brief 現在のUTC時間を取得し、データストアに記録。トランザクション処理に使用。
-# 
+#
 # @param registry 更新するレジストリ名
 #
 # @return 格納されたエンティティのKey
@@ -110,7 +110,7 @@ def WriteDate(registry):
 
 ##
 # @brief 指定したレジストリの更新日時の記録を削除。
-# 
+#
 # @param registry 削除するレジストリ
 #
 # @return なし
@@ -196,8 +196,8 @@ def GetMultiData(keys, prefix):
     cachedict = memcache.get_multi(keys, prefix) #@UndefinedVariable
 
     keyset = set(keys)
-    cacheset = set(cachedict.keys()) 
-    
+    cacheset = set(cachedict.keys())
+
     # 全て取得できなかった場合、データストアから再取得
     if not keyset.issubset(cacheset):
         logging.warning("GetMultiData(): No Get memcache, \
@@ -234,7 +234,7 @@ def GetMultiData(keys, prefix):
                 # 既に同じキーのデータが存在している
                 raise RuntimeError(
                     'GetMultiData(): Already Get Key Data. key: %s' % key)
-        
+
     return cachedict
 
 ##
@@ -248,9 +248,9 @@ def GetMultiData(keys, prefix):
 # @return 格納したエンティティのキー
 def tWrite(name, registry, value, usepickle):
     store = IPStore(name = name,
-                    registry = registry, 
+                    registry = registry,
                     cache = pickle.dumps(value, pickle.HIGHEST_PROTOCOL) \
-                                            if usepickle else value, 
+                                            if usepickle else value,
                     usepickle = usepickle)
     key = store.put()
     return key

@@ -58,8 +58,6 @@
   -ms-transition: 1s;
   -o-transition: 1s;
   transition: 1s;
-  opacity: 0.9;
-  filter: alpha(opacity=90);
 }
 #movepage a:hover span {
   background-color: #777;
