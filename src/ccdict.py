@@ -1,12 +1,12 @@
 ﻿#!/usr/bin/env python
-# vim: set fileencoding=utf-8
+# -*- coding: utf-8 -*-
 
 ##
 # @file ccdict.py
 # @brief 国名コードと国名の一覧
 # @author khz
-# @version 0.1
-# @date 2012-05-25
+# @version 0.2
+# @date 2012-06-04
 
 countries_dict = {
         'AD': 'アンドラ',
@@ -240,6 +240,7 @@ countries_dict = {
         'TZ': 'タンザニア',
         'UA': 'ウクライナ',
         'UG': 'ウガンダ',
+        'UK': 'イギリス',
         'UM': 'アメリカ領太平洋諸島',
         'US': 'アメリカ合衆国',
         'UY': 'ウルグアイ',

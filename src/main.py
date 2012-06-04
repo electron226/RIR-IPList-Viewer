@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: set fileencoding=utf-8
+# -*- coding: utf-8 -*-
 
 ##
 # @file main.py
@@ -167,7 +167,7 @@ class MainHandler(webapp.RequestHandler):
     ##
     # @brief サイトのTOPページのリクエストを処理
     #
-    # @return なし 
+    # @return なし
     def get(self):
         # 全てのレジストリの国名データを取得
         all_countries_cache = []
@@ -226,8 +226,8 @@ def main():
         ('/', MainHandler),
         ('/json', GetJSONHandler),
         ('/jsoncustom', GetJSONCustomHandler),
-        ('/cron', CronHandler), 
-        ('/datastore', datastore.DataStoreHandler), 
+        ('/cron', CronHandler),
+        ('/datastore', datastore.DataStoreHandler),
         ], debug=True)
     util.run_wsgi_app(application)
 

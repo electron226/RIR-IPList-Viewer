@@ -1,5 +1,5 @@
-﻿<!DOCTYPE html>
-<html lang="jp">
+<!DOCTYPE html>
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="description" content="APNICなどからIP一覧を取得、表示">
@@ -57,18 +57,17 @@
                             <label class="checkbox"><input type="checkbox" class="all">ALL</label>
                             <hr>
                             {% for registry, explist in rir %}
-                                <label class="checkbox">
-                                    <table>
-                                    	<tr>
-                                    		<td style="width: 55px;"><input type="checkbox" class="rir" value="{{ registry }}">{{ registry|escape }}</td>
-                                            <td>
-                                            {% for exp in explist %}
-                                                {{ exp|escape }}<br>
-                                            {% endfor %}
-                                            </td>
-                                    	</tr>
-                                    </table>
-                                </label>
+                                <div style="float: left; width: 80px;">
+                                    <label class="checkbox">
+                                        <input type="checkbox" class="rir" value="{{ registry }}">{{ registry|escape }}
+                                    </label>
+                                </div>
+                                <div>
+                                    {% for exp in explist %}
+                                        {{ exp|escape }}
+                                    {% endfor %}
+                                </div>
+                                <div style="clear: left;"></div>
                             {% endfor %}
                         </div>
                     </div>
@@ -85,15 +84,15 @@
                             <label class="checkbox"><input type="checkbox" class="all">ALL</label>
                             <hr>
                             {% for cc, name in countries %}
-                                <label class="checkbox">
-                                    <table>
-                                    	<tr>
-                                    		<td style="width: 30px;"><input type="checkbox" class="cc" value="{{ cc }}">{{ cc|escape }}</td>
-<td>{{ name|escape }}</td>
-
-                                    	</tr>
-                                    </table>
-                                </label>
+                                <div style="float: left; width: 50px;">
+                                    <label class="checkbox">
+                                        <input type="checkbox" class="cc" value="{{ cc }}">{{ cc|escape }}
+                                    </label>
+                                </div>
+                                <div>
+                                    {{ name|escape }}
+                                </div>
+                                <div style="clear: left;"></div>
                             {% endfor %}
                         </div>
                     </div>
@@ -236,14 +235,6 @@
     <script src="js/index.min.js" type="text/javascript"></script>
     <!--[if lte IE 8]>
     <script src="http://remysharp.com/downloads/html5.js" type="text/javascript"></script>
-    <style type="text/css">
-    <!--
-        article, aside, canvas, details, figcaption, figure,
-        footer, header, hgroup, menu, nav, section, summary{
-        　　display: block;
-        }
-    -->
-    </style>
     <![endif]-->
 </body>
 </html>

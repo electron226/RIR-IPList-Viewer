@@ -1,5 +1,5 @@
 ﻿#!/usr/bin/env python
-# vim: set fileencoding=utf-8
+# -*- coding: utf-8 -*-
 
 ##
 # @file iplist.py
@@ -73,7 +73,7 @@ class IPList():
         tasklist = []
         for registry in registries.iterkeys():
             task = taskqueue.Task(
-                    url = '/datastore', 
+                    url = '/datastore',
                     params = {'registry': registry},
                     target = 'backend')
             tasklist.append(task)
