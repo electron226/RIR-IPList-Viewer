@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 ##
@@ -10,6 +10,9 @@ import os
 import logging
 import pickle
 import datetime
+import StringIO
+
+import zipfile
 
 # DJANGO
 os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
@@ -147,8 +150,24 @@ class GetJSONCustomHandler(GetJSONBase):
                 tempstr = tempstr.replace(r'<IPSTART>', json["StartIP"])
                 liststr += tempstr.replace(r'<IPEND>', json["EndIP"])
                 liststr += "<br>"
+                #liststr += "\n"
             self.response.content_type = "text/plain"
             self.response.out.write(liststr)
+            
+            """
+            # ZIP作成
+            zipdata = StringIO.StringIO()
+            zipobj = zipfile.ZipFile(zipdata, 'w', zipfile.ZIP_DEFLATED)
+            zipobj.writestr('list.txt', liststr.encode("utf-8"))
+            zipobj.close()
+            zipdata.seek(0)
+
+            # データを返す
+            self.response.headers['Content-Type'] ='application/zip'
+            self.response.headers['Content-Disposition'] = \
+                    'attachment; filename=list.zip'	
+            self.response.out.write(zipdata.getvalue())
+            """
 
 ##
 # @brief 定期的にスケジュール処理をするクラス
@@ -228,7 +247,7 @@ def main():
         ('/jsoncustom', GetJSONCustomHandler),
         ('/cron', CronHandler),
         ('/datastore', datastore.DataStoreHandler),
-        ], debug=True)
+        ], debug=False)
     util.run_wsgi_app(application)
 
 ##
