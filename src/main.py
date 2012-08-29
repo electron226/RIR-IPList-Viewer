@@ -11,7 +11,6 @@ import logging
 import pickle
 import datetime
 import StringIO
-
 import zipfile
 
 # DJANGO
@@ -149,12 +148,13 @@ class GetJSONCustomHandler(GetJSONBase):
                 tempstr = tempstr.replace(r'<CC>', json["country"])
                 tempstr = tempstr.replace(r'<IPSTART>', json["StartIP"])
                 liststr += tempstr.replace(r'<IPEND>', json["EndIP"])
-                liststr += "<br>"
-                #liststr += "\n"
+                #liststr += "<br>"
+                liststr += "\n"
+            """
             self.response.content_type = "text/plain"
             self.response.out.write(liststr)
-            
             """
+            
             # ZIP作成
             zipdata = StringIO.StringIO()
             zipobj = zipfile.ZipFile(zipdata, 'w', zipfile.ZIP_DEFLATED)
@@ -167,7 +167,6 @@ class GetJSONCustomHandler(GetJSONBase):
             self.response.headers['Content-Disposition'] = \
                     'attachment; filename=list.zip'	
             self.response.out.write(zipdata.getvalue())
-            """
 
 ##
 # @brief 定期的にスケジュール処理をするクラス
