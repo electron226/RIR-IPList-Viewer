@@ -313,16 +313,19 @@ CTextReplace = custom_area.keyup ->
     registry_checks = (num.value for num in $('#registry .rir:checked'))
     country_checks = (num.value for num in $('#country .cc:checked'))
 
-    if registry_checks.length > 0
-        list = registry_checks.join(',')
-        output = "?registry=" + list
-    else
-        list = country_checks.join(',')
-        output = "?country=" + list
+    if registry_checks.length > 0 or country_checks.length > 0
+        if registry_checks.length > 0
+            list = registry_checks.join(',')
+            output = "?registry=" + list
+        else
+            list = country_checks.join(',')
+            output = "?country=" + list
 
-    $("#custom .result_url").text(
-        encodeURI(location.protocol + "//" + location.host \
-                  + "/jsoncustom" + output + "&settings=" + str))
+        $("#custom .result_url").text(
+            encodeURI(location.protocol + "//" + location.host \
+                      + "/jsoncustom" + output + "&settings=" + str))
+    else
+        $("#custom .result_url").text("")
 
 $("#custom .download").click ->
     registry_checks = (num.value for num in $('#registry .rir:checked'))

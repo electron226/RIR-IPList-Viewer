@@ -324,14 +324,18 @@
       }
       return _results;
     })();
-    if (registry_checks.length > 0) {
-      list = registry_checks.join(',');
-      output = "?registry=" + list;
+    if (registry_checks.length > 0 || country_checks.length > 0) {
+      if (registry_checks.length > 0) {
+        list = registry_checks.join(',');
+        output = "?registry=" + list;
+      } else {
+        list = country_checks.join(',');
+        output = "?country=" + list;
+      }
+      return $("#custom .result_url").text(encodeURI(location.protocol + "//" + location.host + "/jsoncustom" + output + "&settings=" + str));
     } else {
-      list = country_checks.join(',');
-      output = "?country=" + list;
+      return $("#custom .result_url").text("");
     }
-    return $("#custom .result_url").text(encodeURI(location.protocol + "//" + location.host + "/jsoncustom" + output + "&settings=" + str));
   });
 
   $("#custom .download").click(function() {
