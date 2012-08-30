@@ -12,6 +12,7 @@ import pickle
 import datetime
 import StringIO
 import zipfile
+import threading
 
 # DJANGO
 os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
@@ -133,6 +134,31 @@ class GetJSONHandler(GetJSONBase):
 ##
 # @brief サーバ側でJSONデータの加工処理を行うクラス
 class GetJSONCustomHandler(GetJSONBase):
+    def __init__(self):
+        self.liststr = ""
+        self.threads = []
+        self.lock = threading.Lock()
+
+    ##
+    # @brief スレッドで行う置き換え処理
+    #
+    # @param settings 置き換える元文字列
+    # @param jsonlist jsonのリスト
+    #
+    # @return なし
+    def thread(self, settings, jsonlist):
+        tempstr = ""
+        for json in jsonlist:
+            replace_str = settings.replace(r'<REGISTRY>', json["registry"])
+            replace_str = replace_str.replace(r'<CC>', json["country"])
+            replace_str = replace_str.replace(r'<IPSTART>', json["StartIP"])
+            replace_str = replace_str.replace(r'<IPEND>', json["EndIP"])
+            tempstr += replace_str + '\n'
+
+        self.lock.acquire()
+        self.liststr += tempstr
+        self.lock.release()
+
     ##
     # @brief GETリクエストを受け取り、指定した形式でJSONデータを出力
     #
@@ -142,23 +168,29 @@ class GetJSONCustomHandler(GetJSONBase):
 
         settings = self.request.get('settings')
         if settings:
-            liststr = ""
-            for json in jsonlist:
-                tempstr = settings.replace(r'<REGISTRY>', json["registry"])
-                tempstr = tempstr.replace(r'<CC>', json["country"])
-                tempstr = tempstr.replace(r'<IPSTART>', json["StartIP"])
-                liststr += tempstr.replace(r'<IPEND>', json["EndIP"])
-                #liststr += "<br>"
-                liststr += "\n"
+            # 5000ステップずつに分けて、マルチスレッドで置き換え処理を行う
+            step = 5000
+            i = 0
+            j = step
+            while True:
+                thread = threading.Thread(
+                        target = self.thread(settings, jsonlist[i:j]))
+                thread.start()
+                self.threads.append(thread)
+                i = j
+                j += step
+                if i >= len(jsonlist):
+                    break
+
             """
             self.response.content_type = "text/plain"
-            self.response.out.write(liststr)
+            self.response.out.write(self.liststr)
             """
             
             # ZIP作成
             zipdata = StringIO.StringIO()
             zipobj = zipfile.ZipFile(zipdata, 'w', zipfile.ZIP_DEFLATED)
-            zipobj.writestr('list.txt', liststr.encode("utf-8"))
+            zipobj.writestr('list.txt', self.liststr.encode("utf-8"))
             zipobj.close()
             zipdata.seek(0)
 
