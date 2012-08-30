@@ -388,3 +388,6 @@
     transform: rotate(360deg);
   }
 }
+.modal {
+  word-break: break-all;
+}

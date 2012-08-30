@@ -9,11 +9,6 @@
     <link type="text/css" rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
     <link type="text/css" rel="stylesheet" href="bootstrap/css/bootstrap-responsive.min.css">
     <link media="all" rel="stylesheet" href="css/style.min.css" type="text/css">
-    <style type="text/css">
-        div.modal-footer button {
-            margin: 2px;
-        }
-    </style>
 </head>
 
 <body>
@@ -200,8 +195,8 @@
     	<div class="modal-header">
     		<button class="close" data-dismiss="modal">x</button>
             <h3>カスタマイズ</h3>
-            <h5>現在、取得している一覧を指定した形式に加工し、出力します。<br>
-                「サーバから出力」を使用する場合、トップページで取得したい項目にチェックが必要です。</h5>
+            <h5>一覧を指定した形式に加工し、出力します。<br>
+                使用する場合、トップページで取得したい項目にチェックが必要です。</h5>
     	</div>
 
         <div class="form-inline">
@@ -223,12 +218,13 @@
                 <div style="padding-top: 10px;">
                     <h4>出力例</h4>
                     <div class="result"></div>
+                    <h4>直接ダウンロードURL</h4>
+                    <div class="result_url"></div>
                 </div>
             </div>
 
             <div class="modal-footer">
-                <button class="output btn btn-success" data-dismiss="modal">既に取得したデータをテキストで出力</button>
-                <button type="submit" class="download btn btn-primary">サーバからZIPで出力</button>
+                <button type="submit" class="download btn btn-primary">ダウンロード</button>
                 <button class="btn" data-dismiss="modal">閉じる</button>
             </div>
         </div>

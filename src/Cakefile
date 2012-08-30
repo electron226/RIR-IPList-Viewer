@@ -16,6 +16,7 @@ task 'compile', 'compile js and css.', (options) ->
         if stdout or stderr
             console.log "#(stdout) #(stderr)"
 
+    # LESS
     for file in FILES_LESS
         NOEXT_CSS = FilePathNoEXT(file)
         exec "lessc #{file} > #{NOEXT_CSS}.css", outputErr
@@ -28,8 +29,8 @@ task 'compile', 'compile js and css.', (options) ->
         exec "coffee -c #{FILES_COFFEE[0]}", outputErr
     else
         exec "coffee -cj #{FILES_COFFEE.join ' '}", outputErr
-        
+
     NOEXT_JS = FilePathNoEXT(FILES_COFFEE[0])
     setTimeout( ->
-            exec "yuicompressor --type js --charset UTF-8 -o #{NOEXT_JS}.min.js #{NOEXT_JS}.js", outputErr
-        , 500)
+            exec "compiler --js_output_file #{NOEXT_JS}.min.js --js #{NOEXT_JS}.js", outputErr
+        , 1000)

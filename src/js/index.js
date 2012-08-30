@@ -296,34 +296,42 @@
   });
 
   CTextReplace = custom_area.keyup(function() {
-    var str, value;
+    var country_checks, list, num, output, registry_checks, replace_str, str, value;
     value = $(this).attr('value');
     str = $.trim(value);
-    str = str.replace(/<REGISTRY>/g, "APNIC");
-    str = str.replace(/<CC>/g, "JP");
-    str = str.replace(/<IPSTART>/g, "192.168.0.0");
-    str = str.replace(/<IPEND>/g, "192.168.0.255");
-    return $("#custom .result").text(str);
-  });
-
-  $("#custom .output").click(function() {
-    var custom_text, custom_value, json, output, str, _i, _len;
-    if (jsondata.length > 0) {
-      custom_value = custom_area.attr('value');
-      custom_text = $.trim(custom_value);
-      output = "";
-      for (_i = 0, _len = jsondata.length; _i < _len; _i++) {
-        json = jsondata[_i];
-        str = custom_text.replace(/<REGISTRY>/g, json.registry);
-        str = str.replace(/<CC>/g, json.country);
-        str = str.replace(/<IPSTART>/g, json.StartIP);
-        str = str.replace(/<IPEND>/g, json.EndIP);
-        output += str + '<br>';
+    replace_str = str.replace(/<REGISTRY>/g, "APNIC");
+    replace_str = replace_str.replace(/<CC>/g, "JP");
+    replace_str = replace_str.replace(/<IPSTART>/g, "192.168.0.0");
+    replace_str = replace_str.replace(/<IPEND>/g, "192.168.0.255");
+    $("#custom .result").text(replace_str);
+    registry_checks = (function() {
+      var _i, _len, _ref, _results;
+      _ref = $('#registry .rir:checked');
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        num = _ref[_i];
+        _results.push(num.value);
       }
-      return $("body").html(output);
+      return _results;
+    })();
+    country_checks = (function() {
+      var _i, _len, _ref, _results;
+      _ref = $('#country .cc:checked');
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        num = _ref[_i];
+        _results.push(num.value);
+      }
+      return _results;
+    })();
+    if (registry_checks.length > 0) {
+      list = registry_checks.join(',');
+      output = "?registry=" + list;
     } else {
-      return alert("データが取得されていません。");
+      list = country_checks.join(',');
+      output = "?country=" + list;
     }
+    return $("#custom .result_url").text(encodeURI(location.protocol + "//" + location.host + "/jsoncustom" + output + "&settings=" + str));
   });
 
   $("#custom .download").click(function() {
@@ -349,9 +357,9 @@
       return _results;
     })();
     if (registry_checks.length > 0 && country_checks.length > 0) {
-      return alert("レジストリ側、国名側の両方のチェックボックスにチェックが入っています。\n" + "どちらか片方のチェックボックスをクリアして、再度行ってください。");
+      return alert("レジストリ側、国名側の両方のチェックボックスに" + "チェックが入っています。\n" + "どちらか片方のチェックボックスをクリアして、" + "再度行ってください。");
     } else if (registry_checks.length === 0 && country_checks.length === 0) {
-      return alert("レジストリ側、国名側の両方のチェックボックスにチェックが入っていません。\n" + "どちらか片方の取得したいチェックボックスを選択して、再度行ってください。");
+      return alert("レジストリ側、国名側の両方のチェックボックスに" + "チェックが入っていません。\n" + "どちらか片方の取得したいチェックボックスを選択して、" + "再度行ってください。");
     } else {
       custom_value = custom_area.attr('value');
       custom_text = $.trim(custom_value);
@@ -368,6 +376,10 @@
 
   $("#custom").ready(function() {
     return CReset.click();
+  });
+
+  $(".navbar [href=#custom]").click(function() {
+    return CTextReplace.keyup();
   });
 
   CheckBrowserIE = function() {
