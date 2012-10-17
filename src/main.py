@@ -7,6 +7,7 @@
 # @author khz
 
 import os
+import re
 import logging
 import pickle
 import datetime
@@ -63,8 +64,8 @@ def GetCreateJSONList(countries, registry):
 def GetRegistries(registries):
     jsonlist = []
     for registry in registries:
-        ccdict = common.GetMultiData([common.COUNTRIES_KEYNAME], registry)
-        for countries in ccdict.itervalues():
+        country_dict = common.GetMultiData([common.COUNTRIES_KEYNAME], registry)
+        for countries in country_dict.itervalues():
             jsonlist += GetCreateJSONList(countries, registry)
 
     return jsonlist
@@ -78,10 +79,10 @@ def GetRegistries(registries):
 def GetCountries(cclist):
     jsonlist = []
     for registry in common.RIR:
-        ccdict = common.GetMultiData([common.COUNTRIES_KEYNAME], registry)
+        country_dict = common.GetMultiData([common.COUNTRIES_KEYNAME], registry)
 
         getlist = []
-        for countries in ccdict.itervalues():
+        for countries in country_dict.itervalues():
             ccset = set(countries)
             argset = set(cclist)
             getlist += ccset.intersection(argset)
@@ -89,6 +90,64 @@ def GetCountries(cclist):
         jsonlist += GetCreateJSONList(getlist, registry)
 
     return jsonlist
+
+##
+# @brief IPアドレスを検索して、該当したアドレスを返すクラス
+class GetIPSearchHandler(webapp.RequestHandler):
+    ipv4_rule = re.compile(r'(\d+).(\d+).(\d+).(\d+)')
+
+    ##
+    # @brief IPアドレスを検索
+    #
+    # @param search_ipobj 検索するIPアドレスのIPクラスのオブジェクト
+    #
+    # @return 見つけたらJSON形式のデータ、見つからなかったらNone
+    def search(self, search_ipobj):
+        for registry in common.RIR.iterkeys():
+            country_dict = common.GetMultiData(
+                        [common.COUNTRIES_KEYNAME], registry)
+            for countries in country_dict.itervalues():
+                tempdict = common.GetMultiData(countries, registry)
+                for country, ccjson in tempdict.iteritems():
+                    ip_listdata = simplejson.loads(ccjson)
+                    for ipobj in ip_listdata:
+                        ip = ips.IPDecoder(ipobj)
+                        if ip.start <= search_ipobj.start \
+                                and search_ipobj.end < ip.end:
+                            if ccdict.countries_dict.has_key(country):
+                                name = ccdict.countries_dict[country]
+                            else:
+                                name = "不明"
+
+                            return [{ "country": country,
+                                      "name": name }]
+        return None
+
+    ##
+    # @brief GETリクエストを受け取り、JSONのデータを渡す
+    def get(self):
+        errflag = True
+
+        request_ip = self.request.get('search_ip')
+        if request_ip:
+            search_record = self.ipv4_rule.search(request_ip)
+            if search_record:
+                # 入力されたIPをIPクラスのインスタンスに変換
+                search_ip = ips.IP(
+                        search_record.group(1), search_record.group(2),
+                        search_record.group(3), search_record.group(4), 0)
+                
+                # 検索
+                return_json = self.search(search_ip)
+                if return_json:
+                    errflag = False
+
+        # 該当なしの場合
+        if errflag:
+            return_json = [{ "country": "",
+                             "name": "" }]
+
+        self.response.out.write(simplejson.dumps(return_json))
 
 ##
 # @brief JSONのリクエスト処理を行うクラスのベースクラス
@@ -109,7 +168,10 @@ class GetJSONBase(webapp.RequestHandler):
                 jsonlist = GetCountries(countries)
             else:
                 # 空
-                jsonlist = [{"country" : "", "registry": "", "StartIP": "", "EndIP": ""}]
+                jsonlist = [{ "country" : "",
+                              "registry": "",
+                              "StartIP": "",
+                              "EndIP": ""}]
 
         jsonlist.sort(lambda x, y: cmp(x["country"], y["country"]));
         jsonlist.sort(lambda x, y: cmp(x["registry"], y["registry"]));
@@ -168,7 +230,7 @@ class GetJSONCustomHandler(GetJSONBase):
 
         settings = self.request.get('settings')
         if settings:
-            # 5000ステップずつに分けて、マルチスレッドで置き換え処理を行う
+            # 5000件ずつに分けて、マルチスレッドで置き換え処理を行う
             step = 5000
             i = 0
             j = step
@@ -182,11 +244,6 @@ class GetJSONCustomHandler(GetJSONBase):
                 if i >= len(jsonlist):
                     break
 
-            """
-            self.response.content_type = "text/plain"
-            self.response.out.write(self.liststr)
-            """
-            
             # ZIP作成
             zipdata = StringIO.StringIO()
             zipobj = zipfile.ZipFile(zipdata, 'w', zipfile.ZIP_DEFLATED)
@@ -278,6 +335,7 @@ def main():
         ('/jsoncustom', GetJSONCustomHandler),
         ('/cron', CronHandler),
         ('/datastore', datastore.DataStoreHandler),
+        ('/search', GetIPSearchHandler),
         ], debug=False)
     util.run_wsgi_app(application)
 

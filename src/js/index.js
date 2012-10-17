@@ -2,7 +2,7 @@
 (function() {
   ﻿;
 
-  var CClear, CReset, CTextReplace, CheckBrowserIE, CustomTextPlus, FormCCClear, FormRegClear, GetRowPoint, Pagination, ShowTable, custom_area, default_custom_text, jsondata, pager, pagination_count, root, view_count;
+  var CClear, CReset, CTextReplace, CheckBrowserIE, CustomTextPlus, FormCCClear, FormRegClear, GetRowPoint, IPCheck, IPSearch, Pagination, ShowTable, custom_area, default_custom_text, jsondata, pager, pagination_count, root, view_count;
 
   view_count = 150;
 
@@ -180,6 +180,65 @@
       return this.elements.append(outstr);
     }
   };
+
+  IPCheck = function(address) {
+    var ip, ip_int, ipgroup, _i, _len, _ref;
+    ipgroup = address.match(/(\d+).(\d+).(\d+).(\d+)/);
+    if (ipgroup) {
+      _ref = ipgroup.slice(1, 5);
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        ip = _ref[_i];
+        ip_int = parseInt(ip);
+        if (ip_int < 0 || 255 < ip_int) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return null;
+  };
+
+  IPSearch = $('a#ip_search');
+
+  IPSearch.click(function() {
+    var close_btn, search_ip;
+    $("#search_circle").css('display', 'inline');
+    close_btn = '<div><button class="btn-primary"\
+                           onclick="search_result_close()">閉じる</button>\
+        </div>\
+        <script type="text/javascript">\
+            function search_result_close() {\
+                $("a#ip_search").popover("hide")\
+            }\
+        </script>';
+    $('a#ip_search').attr('data-original-title', "検索エラー");
+    $('a#ip_search').attr('data-content', "<p>正しいIPアドレスを入力してください。</p>" + close_btn);
+    search_ip = escape($.trim($('input#ip_search_box').attr('value')));
+    if (!IPCheck(search_ip)) {
+      $("#search_circle").css('display', 'none');
+      IPSearch.popover('show');
+      return;
+    }
+    return $.getJSON('/search', {
+      'search_ip': search_ip
+    }, function(json) {
+      var message;
+      jsondata = json[0];
+      if (jsondata.country !== "") {
+        message = "<table class='table'>";
+        message += "<tr>                            <td>検索IP</td>                            <td>" + search_ip + "</td>                        </tr>";
+        message += "<tr>                            <td>国名コード</td>                            <td>" + jsondata.country + "</td>                        </tr>";
+        message += "<tr>                            <td>国名</td>                            <td>" + jsondata.name + "</td>                        </tr>";
+        message += "</table>";
+        $('a#ip_search').attr('data-original-title', "検索結果");
+      } else {
+        message = "<p>該当アドレス無し。</p>";
+      }
+      $('a#ip_search').attr('data-content', message + close_btn);
+      $("#search_circle").css('display', 'none');
+      return IPSearch.popover('show');
+    });
+  });
 
   $('#registry .save').click(function() {
     var checks, num;
@@ -409,6 +468,14 @@
     if (ie < 9) {
       $('#NoBrowser').css('display', 'block');
     }
+    /* IP検索ボタンのポップオーバー設定
+    */
+
+    IPSearch.popover({
+      trigger: 'manual',
+      html: 'true',
+      placement: 'bottom'
+    });
     /* 表示行数設定のドロップダウンメニューのデフォルトの値をアクティブ
     */
 

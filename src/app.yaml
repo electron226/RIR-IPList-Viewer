@@ -22,6 +22,9 @@ handlers:
 - url: /jsoncustom
   script: main.py
 
+- url: /search
+  script: main.py
+
 - url: /bootstrap
   static_dir: bootstrap
 

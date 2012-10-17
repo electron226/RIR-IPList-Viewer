@@ -68,6 +68,7 @@
     margin           : 0 auto;
 }
 
+// 一覧表示用
 .circle {
     .circle_base(50px);
     .box-shadow(0 0 35px @circle_shadow_color);
@@ -79,6 +80,21 @@
     .box-shadow(0 0 15px @circle_shadow_color);
 	position           : relative;
 	top                : -50px;
+    .animation(spinoffPulse 1s infinite linear);
+}
+
+// IP検索用
+.search_circle {
+    .circle_base(30px);
+    .box-shadow(0 0 20px @circle_shadow_color);
+    .animation(spinPulse 1s infinite ease-in-out);
+}
+
+.search_circle1 {
+    .circle_base(10px);
+    .box-shadow(0 0 5px @circle_shadow_color);
+	position           : relative;
+	top                : -30px;
     .animation(spinoffPulse 1s infinite linear);
 }
 
@@ -141,6 +157,10 @@
 // --------------------------------------------------------------------------
 // Twitter bootstrap 変更
 // --------------------------------------------------------------------------
+.popover.bottom {
+    margin-top: 20px;
+}
+
 .modal {
     word-break: break-all;
 }

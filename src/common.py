@@ -172,7 +172,7 @@ def ReadRecord(**kwargs):
     else:
         raise ValueError('ReadRecord() argument error.')
 
-    # registryのみ以外を使用する場合
+    # registryのみ以外の時にここにくる
     for instance in query:
         cache = pickle.loads(instance.cache) \
                             if instance.usepickle else instance.cache

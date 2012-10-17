@@ -44,6 +44,9 @@ class DataStoreHandler(webapp.RequestHandler):
             if len(values) < 2:
                 continue
             
+            #################################################################
+            # マルチスレッド化予定
+            #################################################################
             i = 0
             j = i + 1
             while j < len(values):
@@ -140,8 +143,8 @@ class DataStoreHandler(webapp.RequestHandler):
 
             # memcacheとデータストアに保存
             memcache_dict = {}
-            for country, value in ipdict.iteritems():
-                ccjson = simplejson.dumps(value, cls = ips.IPEncoder)
+            for country, ipobj in ipdict.iteritems():
+                ccjson = simplejson.dumps(ipobj, cls = ips.IPEncoder)
                 common.WriteRecord(country, registry, ccjson, True)
                 memcache_dict["%s" % country] = ccjson
 

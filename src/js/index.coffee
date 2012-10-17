@@ -205,6 +205,81 @@ Pagination.prototype = {
 # フォームボタンなど
 # -------------------------------------------------------------
 
+# 文字列がIPアドレスで正しい数値かチェック
+# address : IPアドレスの文字列
+# 戻り値: 正常終了ならtrue, 不正な値ならfalse、IPアドレスではないならnull
+IPCheck = (address) ->
+    ipgroup = address.match(/(\d+).(\d+).(\d+).(\d+)/)
+    if ipgroup
+        for ip in ipgroup[1..4]
+            ip_int = parseInt(ip)
+            if ip_int < 0 || 255 < ip_int
+                return false
+        return true
+    return null
+
+# IPアドレスの検索ボタン
+IPSearch = $('a#ip_search')
+IPSearch.click ->
+    # 読み込みサークル表示
+    $("#search_circle").css('display', 'inline')
+
+    # 検索結果の閉じるボタン
+    close_btn =
+        '<div><button class="btn-primary"
+                           onclick="search_result_close()">閉じる</button>
+        </div>
+        <script type="text/javascript">
+            function search_result_close() {
+                $("a#ip_search").popover("hide")
+            }
+        </script>'
+
+    # デフォルトの表示メッセージ
+    $('a#ip_search').attr('data-original-title', "検索エラー")
+    $('a#ip_search').attr(
+        'data-content',
+        "<p>正しいIPアドレスを入力してください。</p>" + close_btn)
+
+    # アドレスの取得と確認
+    search_ip = escape($.trim($('input#ip_search_box').attr('value')))
+    if not IPCheck(search_ip)
+        # マッチしないならそのまま終了
+        $("#search_circle").css('display', 'none')
+        IPSearch.popover('show')
+        return
+
+    # JSONデータの取得
+    $.getJSON '/search', { 'search_ip': search_ip }, (json) ->
+        jsondata = json[0]
+        if jsondata.country != ""
+            # データがある場合
+            message = "<table class='table'>"
+            message += "<tr>
+                            <td>検索IP</td>
+                            <td>" + search_ip + "</td>
+                        </tr>"
+            message += "<tr>
+                            <td>国名コード</td>
+                            <td>" + jsondata.country + "</td>
+                        </tr>"
+            message += "<tr>
+                            <td>国名</td>
+                            <td>" + jsondata.name + "</td>
+                        </tr>"
+            message += "</table>"
+            $('a#ip_search').attr('data-original-title', "検索結果")
+        else
+            # 該当データがない
+            message = "<p>該当アドレス無し。</p>"
+        $('a#ip_search').attr('data-content', message + close_btn)
+
+        # 読み込みサークルの非表示と結果の表示
+        $("#search_circle").css('display', 'none')
+        IPSearch.popover('show')
+
+# -------------------------------------------------------------
+
 # レジストリのチェックボックスの結果を有効
 $('#registry .save').click ->
     checks = (num.value for num in $('#registry .rir:checked'))
@@ -379,6 +454,13 @@ $(document).ready ->
     ie = CheckBrowserIE()
     if ie < 9
         $('#NoBrowser').css('display', 'block')
+
+    ### IP検索ボタンのポップオーバー設定 ###
+    IPSearch.popover({
+        trigger: 'manual',
+        html: 'true',
+        placement: 'bottom'
+    })
 
     ### 表示行数設定のドロップダウンメニューのデフォルトの値をアクティブ ###
     $('#view_row li:eq(' + GetRowPoint(view_count) + ')').addClass('active')
