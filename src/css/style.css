@@ -430,6 +430,9 @@
     transform: rotate(360deg);
   }
 }
+.whois_popover {
+  width: 500px;
+}
 .popover.bottom {
   margin-top: 20px;
 }

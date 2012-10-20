@@ -2,13 +2,15 @@
 (function() {
   ﻿;
 
-  var CClear, CReset, CTextReplace, CheckBrowserIE, CustomTextPlus, FormCCClear, FormRegClear, GetRowPoint, IPCheck, IPSearch, Pagination, ShowTable, custom_area, default_custom_text, jsondata, pager, pagination_count, root, view_count;
+  var CClear, CReset, CTextReplace, CheckBrowserIE, CustomTextPlus, FormCCClear, FormRegClear, GetInputIP, GetRowPoint, IPCheck, IPSearch, InputSearchIP, Pagination, SearchCircle, SearchCommonCloseBtnString, ShowTable, WhoisSearch, custom_area, default_custom_text, jsondata, pager, pagination_count, root, view_count, whois_url;
 
   view_count = 150;
 
   pagination_count = 5;
 
   root = typeof exports !== "undefined" && exports !== null ? exports : this;
+
+  whois_url = "http://www.whoisxmlapi.com/whoisserver/WhoisService";
 
   $.fn.state = function(state) {
     var d;
@@ -198,45 +200,156 @@
     return null;
   };
 
+  SearchCommonCloseBtnString = function(element) {
+    return '\
+            <div>\
+                <button class="btn-primary"\
+                               onclick="SearchCommonCloseBtnString_' + $(element).get(0).id + '_close()">閉じる</button>\
+            </div>\
+            <script type="text/javascript">\
+                function SearchCommonCloseBtnString_' + $(element).get(0).id + '_close() {\
+                        $("' + $(element).get(0).tagName + '#' + $(element).get(0).id + '").popover("hide")\
+                }\
+            </script>\
+            ';
+  };
+
+  InputSearchIP = $('input#ip_search_box');
+
+  GetInputIP = function() {
+    return escape($.trim(InputSearchIP.attr('value')));
+  };
+
+  SearchCircle = $('#search_circle');
+
   IPSearch = $('a#ip_search');
 
   IPSearch.click(function() {
     var close_btn, search_ip;
-    $("#search_circle").css('display', 'inline');
-    close_btn = '<div><button class="btn-primary"\
-                           onclick="search_result_close()">閉じる</button>\
-        </div>\
-        <script type="text/javascript">\
-            function search_result_close() {\
-                $("a#ip_search").popover("hide")\
-            }\
-        </script>';
-    $('a#ip_search').attr('data-original-title', "検索エラー");
-    $('a#ip_search').attr('data-content', "<p>正しいIPアドレスを入力してください。</p>" + close_btn);
-    search_ip = escape($.trim($('input#ip_search_box').attr('value')));
+    SearchCircle.css('display', 'inline');
+    close_btn = SearchCommonCloseBtnString(this);
+    IPSearch.attr('data-original-title', "検索エラー");
+    IPSearch.attr('data-content', "<p>正しいIPアドレスを入力してください。</p>" + close_btn);
+    search_ip = GetInputIP();
     if (!IPCheck(search_ip)) {
-      $("#search_circle").css('display', 'none');
+      SearchCircle.css('display', 'none');
       IPSearch.popover('show');
       return;
     }
-    return $.getJSON('/search', {
-      'search_ip': search_ip
-    }, function(json) {
-      var message;
-      jsondata = json[0];
-      if (jsondata.country !== "") {
-        message = "<table class='table'>";
-        message += "<tr>                            <td>検索IP</td>                            <td>" + search_ip + "</td>                        </tr>";
-        message += "<tr>                            <td>国名コード</td>                            <td>" + jsondata.country + "</td>                        </tr>";
-        message += "<tr>                            <td>国名</td>                            <td>" + jsondata.name + "</td>                        </tr>";
-        message += "</table>";
-        $('a#ip_search').attr('data-original-title', "検索結果");
-      } else {
-        message = "<p>該当アドレス無し。</p>";
+    return $.ajax({
+      url: '/search',
+      data: {
+        'search_ip': search_ip
+      },
+      type: 'GET',
+      dataType: 'json',
+      success: function(data, type) {
+        var i, item, items, key, message, table_items, _i, _len;
+        try {
+          if (data.country.length > 0) {
+            items = {
+              '検索IP': search_ip,
+              '国名コード': data.country,
+              '国名': data.name
+            };
+            message = "<table class='table'>";
+            table_items = (function() {
+              var _results;
+              _results = [];
+              for (key in items) {
+                item = items[key];
+                _results.push("<tr>                                       <td>" + key + "</td>                                       <td>" + item + "</td>                                   </tr>");
+              }
+              return _results;
+            })();
+            for (_i = 0, _len = table_items.length; _i < _len; _i++) {
+              i = table_items[_i];
+              message += i;
+            }
+            message += "</table>";
+            IPSearch.attr('data-original-title', "検索結果");
+          } else {
+            message = "<p>該当アドレス無し。</p>";
+          }
+        } catch (error) {
+          message = error;
+        }
+        return IPSearch.attr('data-content', message + close_btn);
+      },
+      error: function() {
+        return console.log('IP Search Error');
+      },
+      complete: function() {
+        SearchCircle.css('display', 'none');
+        return IPSearch.popover('show');
       }
-      $('a#ip_search').attr('data-content', message + close_btn);
-      $("#search_circle").css('display', 'none');
-      return IPSearch.popover('show');
+    });
+  });
+
+  WhoisSearch = $('a#whois_search');
+
+  WhoisSearch.click(function() {
+    var close_btn, format, query, search_ip;
+    SearchCircle.css('display', 'inline');
+    close_btn = SearchCommonCloseBtnString(this);
+    WhoisSearch.attr('data-original-title', "Whois検索エラー");
+    WhoisSearch.attr('data-content', "<p>正しいIPアドレスを入力してください。</p>" + close_btn);
+    search_ip = GetInputIP();
+    if (!IPCheck(search_ip)) {
+      SearchCircle.css('display', 'none');
+      WhoisSearch.popover('show');
+      return;
+    }
+    format = "JSON";
+    query = {
+      'domainName': search_ip,
+      'outputFormat': format
+    };
+    return $.ajax({
+      url: whois_url,
+      data: query,
+      type: 'GET',
+      crossDomain: true,
+      dataType: 'jsonp',
+      success: function(data, type) {
+        var i, j, message, rRawText, rawText, rawTextList, record, _i, _j, _len, _len1, _ref;
+        try {
+          record = data['WhoisRecord'];
+          rawText = record['rawText'];
+          if (rawText) {
+            rawTextList = rawText.split('\u000a\u000a');
+          } else {
+            rRawText = record['registryData']['rawText'];
+            if (rRawText) {
+              rawTextList = rRawText.split('\u000a\u000a');
+            } else {
+              throw "レコードが存在しませんでした。";
+            }
+          }
+          message = "";
+          for (_i = 0, _len = rawTextList.length; _i < _len; _i++) {
+            i = rawTextList[_i];
+            message += '<div style="margin-bottom: 1em;">';
+            _ref = i.split('\u000a');
+            for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
+              j = _ref[_j];
+              message += "<p>" + $.trim(j) + "</p>";
+            }
+            message += "</div>";
+          }
+        } catch (error) {
+          message = error;
+        }
+        WhoisSearch.attr('data-original-title', "Whois検索結果");
+        return WhoisSearch.attr('data-content', message + close_btn);
+      },
+      error: function() {
+        return console.log('WhoisSearch Error');
+      },
+      complete: function() {
+        SearchCircle.css('display', 'none');
+        return WhoisSearch.popover('show');
+      }
     });
   });
 
@@ -475,6 +588,12 @@
       trigger: 'manual',
       html: 'true',
       placement: 'bottom'
+    });
+    WhoisSearch.popover({
+      trigger: 'manual',
+      html: 'true',
+      placement: 'bottom',
+      template: '<div class="popover whois_popover">' + '<div class="arrow"></div>' + '<div class="popover-inner whois_popover">' + '<h3 class="popover-title"></h3>' + '<div class="popover-content"><p></p></div></div></div>'
     });
     /* 表示行数設定のドロップダウンメニューのデフォルトの値をアクティブ
     */

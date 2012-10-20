@@ -25,11 +25,12 @@
                 	<li><a href="#custom" data-toggle="modal">カスタマイズ</a></li>
                 </ul>
                 <ul class="navbar-search">
-                    <input type="text" id="ip_search_box" class="search-query" placeholder="IPアドレスの検索">
-                    <div id="search_circle" style="position: absolute; left: 35%; display: none;">
+                    <input type="text" id="ip_search_box" class="search-query" maxlength="15" placeholder="IPアドレスの検索" style="width: 160px;">
+                    <div id="search_circle" style="position: absolute; left: 30%; display: none;">
                         <div class="search_circle"></div><div class="search_circle1"></div>
                     </div>
-                    <a href="#" id="ip_search" class="btn-small btn-primary" data-original-title="タイトル" data-content="内容">検索</a>
+                    <a href="#" id="ip_search" class="btn-small btn-primary" data-original-title="検索" data-content="結果">検索</a>
+                    <a href="#" id="whois_search" class="btn-small btn-success" data-original-title="WHOIS" data-content="結果">Whois</a>
                 </ul>
                 <ul class="nav pull-right">
                     <li class="dropdown">
@@ -236,7 +237,7 @@
             </div>
         </div>
     </div>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js" type="text/javascript"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js" type="text/javascript"></script>
     <script src="bootstrap/js/bootstrap.min.js" type="text/javascript"></script>
     <script src="js/index.min.js" type="text/javascript"></script>
     <!--[if lte IE 8]>

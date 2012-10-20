@@ -23,7 +23,8 @@ use_library('django', '1.2')
 
 from django.utils import simplejson
 
-from google.appengine.api import memcache #@UndefinedVariable
+from google.appengine.api import memcache
+from google.appengine.api import urlfetch
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import util
 from google.appengine.ext.webapp import template
@@ -35,12 +36,12 @@ import ips
 import iplist
 
 ##
-# @brief 指定した引数のデータを取得し、json形式のリストで返す
+# @brief 指定した引数のデータを取得し、連想配列のリストを返す
 #
 # @param countries 取得する国名のリスト
 # @param registry レジストリ名
 #
-# @return JSON形式のデータ
+# @return 連想配列のリスト
 def GetCreateJSONList(countries, registry):
     tempdict = common.GetMultiData(countries, registry)
 
@@ -56,11 +57,11 @@ def GetCreateJSONList(countries, registry):
     return jsonlist
 
 ##
-# @brief 指定したレジストリのデータを取得し、json形式のリストで返す
+# @brief 指定したレジストリのデータを取得し、連想配列のリストを返す
 #
 # @param registries 取得するレジストリのリスト
 #
-# @return JSON形式のデータ
+# @return 連想配列のリスト
 def GetRegistries(registries):
     jsonlist = []
     for registry in registries:
@@ -71,11 +72,11 @@ def GetRegistries(registries):
     return jsonlist
 
 ##
-# @brief 指定した国名のデータを取得し、json形式のリストで返す
+# @brief 指定した国名のデータを取得し、連想配列のリストで返す
 #
 # @param cclist 取得する国名のリスト
 #
-# @return JSON形式のデータ
+# @return 連想配列のリスト
 def GetCountries(cclist):
     jsonlist = []
     for registry in common.RIR:
@@ -101,7 +102,7 @@ class GetIPSearchHandler(webapp.RequestHandler):
     #
     # @param search_ipobj 検索するIPアドレスのIPクラスのオブジェクト
     #
-    # @return 見つけたらJSON形式のデータ、見つからなかったらNone
+    # @return 見つけたら連想配列のオブジェクト、見つからなかったらNone
     def search(self, search_ipobj):
         for registry in common.RIR.iterkeys():
             country_dict = common.GetMultiData(
@@ -119,12 +120,12 @@ class GetIPSearchHandler(webapp.RequestHandler):
                             else:
                                 name = "不明"
 
-                            return [{ "country": country,
-                                      "name": name }]
+                            return { "country": country,
+                                      "name": name }
         return None
 
     ##
-    # @brief GETリクエストを受け取り、JSONのデータを渡す
+    # @brief GETリクエストを受け取り、JSON形式のデータを渡す
     def get(self):
         errflag = True
 
@@ -144,8 +145,8 @@ class GetIPSearchHandler(webapp.RequestHandler):
 
         # 該当なしの場合
         if errflag:
-            return_json = [{ "country": "",
-                             "name": "" }]
+            return_json = { "country": "",
+                             "name": "" }
 
         self.response.out.write(simplejson.dumps(return_json))
 
@@ -305,14 +306,14 @@ class MainHandler(webapp.RequestHandler):
             exist_rir[registry] = common.RIREXP[registry]
 
         # 最後の更新日時のデータを取得
-        lastupdate = memcache.get(common.MEMCACHE_LASTUPDATE) #@UndefinedVariable
+        lastupdate = memcache.get(common.MEMCACHE_LASTUPDATE)
         if not lastupdate:
             timerecord = common.GetLastUpdateDate()
             if timerecord:
                 uptime = timerecord.time
                 uptime += datetime.timedelta(hours = 9)
                 lastupdate = uptime.strftime("%Y/%m/%d %H:%M:%S")
-                if not memcache.set(common.MEMCACHE_LASTUPDATE, lastupdate): #@UndefinedVariable
+                if not memcache.set(common.MEMCACHE_LASTUPDATE, lastupdate):
                     logging.error("Can't set memcache of last update time.")
 
         template_values = { 'rir' : sorted(exist_rir.items(),

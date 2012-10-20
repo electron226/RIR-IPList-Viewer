@@ -14,6 +14,9 @@ pagination_count = 5
 
 root = exports ? this
 
+# Whoisの入手先
+whois_url = "http://www.whoisxmlapi.com/whoisserver/WhoisService"
+
 # -------------------------------------------------------------
 # Save Changesボタンが押されたら、Loadingと表示させるのに使う
 # -------------------------------------------------------------
@@ -119,11 +122,11 @@ $.fn.pagination.defaults =
 Pagination = (options) ->
     opts = $.extend({}, $.fn.pagination.defaults, options)
 
-    @current_page = opts.current_page                     # 現在のページ
-    @view_record = opts.view_record                       # 1ページに表示するレコード数
-    @total_record = opts.total_record                     # 全てのレコード数
+    @current_page = opts.current_page   # 現在のページ
+    @view_record = opts.view_record     # 1ページに表示するレコード数
+    @total_record = opts.total_record   # 全てのレコード数
     @total_page = Math.ceil(@total_record / @view_record) # 総ページ数
-    @nav_count = opts.nav_count                           # 表示するナビゲーション数
+    @nav_count = opts.nav_count         # 表示するナビゲーション数
     @elements = opts.elements # 適用する要素
 
     @Initialized()
@@ -136,7 +139,8 @@ Pagination.prototype = {
         if @total_page < @nav_count
             @nav_count = @total_page
         
-        # トータルページ数が2以下または現在のページが総ページ数より大きい場合表示しない
+        # トータルページ数が2以下または現在のページが
+        # 総ページ数より大きい場合表示しない
         if @total_page <= 1 || @total_page < @current_page
             # 前回の結果が残っている場合があるため、表示されている要素をクリア
             @elements.empty()
@@ -174,28 +178,32 @@ Pagination.prototype = {
             outstr += '<li class="prev">'
         else
             outstr += '<li class="prev active">'
-        outstr += '<a href="#" onclick="GetViewTable(' + (current - 1) + ')">&lsaquo;</a></li>'
+        outstr += '<a href="#" onclick="GetViewTable(' \
+                        + (current - 1) + ')">&lsaquo;</a></li>'
 
         for i in [first..last]
             if i == current
                 outstr += '<li class="page active">'
             else
                 outstr += '<li class="page">'
-            outstr += '<a href="#" onclick="GetViewTable(' + i + ')">' + i + '</a></li>'
+            outstr += '<a href="#" onclick="GetViewTable(' \
+                            + i + ')">' + i + '</a></li>'
         
         # 「次へ」ボタン追加(最後のページ以前で有効)
         if current < @total_page
             outstr += '<li class="next">'
         else
             outstr += '<li class="next active">'
-        outstr += '<a href="#" onclick="GetViewTable(' + (current + 1) + ')">&rsaquo;</a></li>'
+        outstr += '<a href="#" onclick="GetViewTable(' \
+                        + (current + 1) + ')">&rsaquo;</a></li>'
 
         # 「最後へ」ボタン追加(最後のページの前ページ以前で有効)
         if current < @total_page - 1
             outstr += '<li class="last">'
         else
             outstr += '<li class="last active">'
-        outstr += '<a href="#" onclick="GetViewTable(' + @total_page + ')">&raquo;</a></li>'
+        outstr += '<a href="#" onclick="GetViewTable(' \
+                        + @total_page + ')">&raquo;</a></li>'
 
         outstr += '</ul>'
         @elements.append(outstr)
@@ -218,65 +226,166 @@ IPCheck = (address) ->
         return true
     return null
 
+# ポップオーバーの内容用に表示する閉じるボタンをHTML文字列で返す
+# element : 作成する要素のDOM要素自身(thisを受け取る)
+# 戻り値: HTML文字列
+SearchCommonCloseBtnString = (element) ->
+    return '
+            <div>
+                <button class="btn-primary"
+                               onclick="SearchCommonCloseBtnString_' \
+                           + $(element).get(0).id + '_close()">閉じる</button>
+            </div>
+            <script type="text/javascript">
+                function SearchCommonCloseBtnString_' \
+                    + $(element).get(0).id + '_close() {
+                        $("' + $(element).get(0).tagName \
+                        + '#' + $(element).get(0).id + '").popover("hide")
+                }
+            </script>
+            '
+
+# IPアドレス入力欄の要素を加工して返す
+InputSearchIP = $('input#ip_search_box')
+GetInputIP = ->
+    return escape($.trim(InputSearchIP.attr('value')))
+
+# 検索読み込みサークル
+SearchCircle = $('#search_circle')
+
 # IPアドレスの検索ボタン
 IPSearch = $('a#ip_search')
 IPSearch.click ->
     # 読み込みサークル表示
-    $("#search_circle").css('display', 'inline')
+    SearchCircle.css('display', 'inline')
 
     # 検索結果の閉じるボタン
-    close_btn =
-        '<div><button class="btn-primary"
-                           onclick="search_result_close()">閉じる</button>
-        </div>
-        <script type="text/javascript">
-            function search_result_close() {
-                $("a#ip_search").popover("hide")
-            }
-        </script>'
+    close_btn = SearchCommonCloseBtnString(@)
 
     # デフォルトの表示メッセージ
-    $('a#ip_search').attr('data-original-title', "検索エラー")
-    $('a#ip_search').attr(
+    IPSearch.attr('data-original-title', "検索エラー")
+    IPSearch.attr(
         'data-content',
         "<p>正しいIPアドレスを入力してください。</p>" + close_btn)
 
     # アドレスの取得と確認
-    search_ip = escape($.trim($('input#ip_search_box').attr('value')))
+    search_ip = GetInputIP()
     if not IPCheck(search_ip)
         # マッチしないならそのまま終了
-        $("#search_circle").css('display', 'none')
+        SearchCircle.css('display', 'none')
         IPSearch.popover('show')
         return
 
     # JSONデータの取得
-    $.getJSON '/search', { 'search_ip': search_ip }, (json) ->
-        jsondata = json[0]
-        if jsondata.country != ""
-            # データがある場合
-            message = "<table class='table'>"
-            message += "<tr>
-                            <td>検索IP</td>
-                            <td>" + search_ip + "</td>
-                        </tr>"
-            message += "<tr>
-                            <td>国名コード</td>
-                            <td>" + jsondata.country + "</td>
-                        </tr>"
-            message += "<tr>
-                            <td>国名</td>
-                            <td>" + jsondata.name + "</td>
-                        </tr>"
-            message += "</table>"
-            $('a#ip_search').attr('data-original-title', "検索結果")
-        else
-            # 該当データがない
-            message = "<p>該当アドレス無し。</p>"
-        $('a#ip_search').attr('data-content', message + close_btn)
+    $.ajax(
+        url: '/search',
+        data: { 'search_ip': search_ip },
+        type: 'GET',
+        dataType: 'json',
+        success: (data, type) ->
+            try
+                if data.country.length > 0
+                    # データがある場合
+                    items =
+                        '検索IP': search_ip
+                        '国名コード': data.country
+                        '国名': data.name
 
-        # 読み込みサークルの非表示と結果の表示
-        $("#search_circle").css('display', 'none')
-        IPSearch.popover('show')
+                    message = "<table class='table'>"
+                    table_items = for key, item of items
+                                   "<tr>
+                                       <td>#{key}</td>
+                                       <td>#{item}</td>
+                                   </tr>"
+                    message += i for i in table_items
+                    message += "</table>"
+                    IPSearch.attr('data-original-title', "検索結果")
+                else
+                    # 該当データがない
+                    message = "<p>該当アドレス無し。</p>"
+            catch error
+                message = error
+
+            IPSearch.attr('data-content', message + close_btn)
+        error: ->
+            console.log('IP Search Error')
+        complete: ->
+            # 読み込みサークルの非表示と結果の表示
+            SearchCircle.css('display', 'none')
+            IPSearch.popover('show')
+    )
+
+# Whois
+WhoisSearch = $('a#whois_search')
+WhoisSearch.click ->
+    # 読み込みサークル表示
+    SearchCircle.css('display', 'inline')
+
+    # 検索結果の閉じるボタン
+    close_btn = SearchCommonCloseBtnString(@)
+
+    # デフォルトのメッセージ
+    WhoisSearch.attr('data-original-title', "Whois検索エラー")
+    WhoisSearch.attr(
+        'data-content',
+        "<p>正しいIPアドレスを入力してください。</p>" + close_btn)
+
+    # アドレスの取得と確認
+    search_ip = GetInputIP()
+    if not IPCheck(search_ip)
+        # マッチしないならそのまま終了
+        SearchCircle.css('display', 'none')
+        WhoisSearch.popover('show')
+        return
+
+    # Whois取得
+    format = "JSON"
+    query =
+        'domainName': search_ip
+        'outputFormat': format
+    $.ajax(
+        url: whois_url,
+        data: query,
+        type: 'GET',
+        crossDomain: true,
+        dataType: 'jsonp',
+        success: (data, type) ->
+            try
+                # データの取得・加工
+                record = data['WhoisRecord']
+                rawText = record['rawText']
+                if rawText
+                    # 個別のものを取得
+                    rawTextList = rawText.split('\u000a\u000a')
+                else
+                    # 個別のものがなければレジストリから取得する
+                    rRawText = record['registryData']['rawText']
+                    if rRawText
+                        rawTextList = rRawText.split('\u000a\u000a')
+                    else
+                        # レジストリ側も存在しない場合
+                        throw "レコードが存在しませんでした。"
+
+                # 表示形式設定
+                message = ""
+                for i in rawTextList
+                    message += '<div style="margin-bottom: 1em;">'
+                    for j in i.split('\u000a')
+                        message += "<p>" + $.trim(j) + "</p>"
+                    message += "</div>"
+            catch error
+                message = error
+
+            # 出力
+            WhoisSearch.attr('data-original-title', "Whois検索結果")
+            WhoisSearch.attr('data-content', message + close_btn)
+        error: ->
+            console.log('WhoisSearch Error')
+        complete: ->
+            # 読み込みサークルの非表示と結果の表示
+            SearchCircle.css('display', 'none')
+            WhoisSearch.popover('show')
+    )
 
 # -------------------------------------------------------------
 
@@ -459,7 +568,17 @@ $(document).ready ->
     IPSearch.popover({
         trigger: 'manual',
         html: 'true',
-        placement: 'bottom'
+        placement: 'bottom',
+    })
+    WhoisSearch.popover({
+        trigger: 'manual',
+        html: 'true',
+        placement: 'bottom',
+        template: '<div class="popover whois_popover">' \
+                    + '<div class="arrow"></div>' \
+                    + '<div class="popover-inner whois_popover">' \
+                    + '<h3 class="popover-title"></h3>' \
+                    + '<div class="popover-content"><p></p></div></div></div>'
     })
 
     ### 表示行数設定のドロップダウンメニューのデフォルトの値をアクティブ ###

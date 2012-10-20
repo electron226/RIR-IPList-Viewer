@@ -120,7 +120,7 @@ def DeleteDate(registry):
         db.run_in_transaction(tDelete, one_query)
 
     # memcacheにある最終更新日時を削除しておく
-    memcache.delete(MEMCACHE_LASTUPDATE) #@UndefinedVariable
+    memcache.delete(MEMCACHE_LASTUPDATE)
 
 # ----------------------------------------------------------------------------
 # IP一覧の保存・読み込みなどに使用するクラス・関数群
@@ -193,7 +193,7 @@ def ReadRecord(**kwargs):
 #
 # @return 取得したデータの辞書型。引数で使ったキー名に入っている。
 def GetMultiData(keys, prefix):
-    cachedict = memcache.get_multi(keys, prefix) #@UndefinedVariable
+    cachedict = memcache.get_multi(keys, prefix)
 
     keyset = set(keys)
     cacheset = set(cachedict.keys())
@@ -221,7 +221,7 @@ def GetMultiData(keys, prefix):
             reload_data[notkey] = recordlist[0]
 
         # memcacheに再設定
-        if len(memcache.set_multi(reload_data, memcache_time, prefix)) == 0: #@UndefinedVariable
+        if len(memcache.set_multi(reload_data, memcache_time, prefix)) == 0:
             logging.warning("GetMultiData(): Set memcache again.")
         else:
             logging.warning("GetMultiData(): Set memcache failure.")
@@ -311,7 +311,7 @@ def DeleteRecord(**kwargs):
 #
 # @return なし
 def ClearAll():
-    if not memcache.flush_all(): #@UndefinedVariable
+    if not memcache.flush_all():
         logging.error('memcache flush_all failure.')
     db.delete(IPStore.all())
     db.delete(UpdateDate.all())
