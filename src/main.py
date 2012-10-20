@@ -50,7 +50,8 @@ def GetCreateJSONList(countries, registry):
         iplist_data = simplejson.loads(ccjson)
         for ipobj in iplist_data:
             ip = ips.IPDecoder(ipobj)
-            json = {"country" : country, "registry": registry,
+            json = {"country": country, "registry": registry,
+                    "start": ip.start, "end": ip.end,
                     "StartIP": ip.StartIP(), "EndIP": ip.EndIP()}
             jsonlist.append(json)
 
@@ -171,6 +172,8 @@ class GetJSONBase(webapp.RequestHandler):
                 # 空
                 jsonlist = [{ "country" : "",
                               "registry": "",
+                              "start": "",
+                              "end": "",
                               "StartIP": "",
                               "EndIP": ""}]
 

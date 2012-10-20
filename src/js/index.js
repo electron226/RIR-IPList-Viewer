@@ -2,7 +2,7 @@
 (function() {
   ﻿;
 
-  var CClear, CReset, CTextReplace, CheckBrowserIE, CustomTextPlus, FormCCClear, FormRegClear, GetInputIP, GetRowPoint, IPCheck, IPSearch, InputSearchIP, Pagination, SearchCircle, SearchCommonCloseBtnString, ShowTable, WhoisSearch, custom_area, default_custom_text, jsondata, pager, pagination_count, root, view_count, whois_url;
+  var CClear, CReset, CTextReplace, CheckBrowserIE, CustomTextPlus, FormCCClear, FormRegClear, GetInputIP, GetRowPoint, IPCheck, IPSearch, InputSearchIP, LoadCircle, Pagination, SearchCircle, SearchCommonCloseBtnString, ShowTable, UpdateTable, WhoisSearch, before_selected, custom_area, default_custom_text, jsondata, pager, pagination_count, root, view_count, whois_url;
 
   view_count = 150;
 
@@ -27,27 +27,44 @@
     });
   };
 
-  pager = NaN;
+  pager = null;
 
   jsondata = [];
 
-  $.fn.UpdateTable = function(data) {
+  LoadCircle = $('#load_circle');
+
+  UpdateTable = function(params) {
     var $this;
-    $("#load_circle").css('display', 'inline');
+    LoadCircle.css('display', 'inline');
     $this = $(this);
     $this.state('loading');
-    return $.getJSON('/json', data, function(json) {
-      var params;
-      jsondata = json;
-      ShowTable(0, view_count);
-      params = {
-        view_record: view_count,
-        total_record: json.length,
-        nav_count: pagination_count
-      };
-      pager = $("#view_pages").pagination(params);
-      $this.state('complete');
-      return $("#load_circle").css('display', 'none');
+    return $.ajax({
+      url: '/json',
+      data: params,
+      type: 'GET',
+      dataType: 'json',
+      success: function(json, type) {
+        try {
+          jsondata = json;
+          ShowTable(0, view_count);
+          params = {
+            view_record: view_count,
+            total_record: json.length,
+            nav_count: pagination_count
+          };
+          return pager = $("#view_pages").pagination(params);
+        } catch (error) {
+          console.log(error);
+          return alert(error);
+        }
+      },
+      error: function() {
+        return console.log('IP Search Error');
+      },
+      complete: function() {
+        $this.state('complete');
+        return LoadCircle.css('display', 'none');
+      }
     });
   };
 
@@ -78,7 +95,7 @@
     view_count = num;
     $('#view_row .active').removeClass('active');
     $('#view_row li:eq(' + GetRowPoint(num) + ')').addClass('active');
-    if (pager) {
+    if (pager != null) {
       ShowTable(0, view_count);
       params = {
         view_record: view_count,
@@ -92,6 +109,109 @@
   GetRowPoint = function(num) {
     return (num / 50) - 1;
   };
+
+  before_selected = null;
+
+  $('button.sort_item').click(function() {
+    var $this, name, state;
+    $this = $(this);
+    name = this.name;
+    if (before_selected !== name) {
+      $this.attr('value', 'asc');
+    }
+    state = $this.attr('value');
+    try {
+      if (state === 'asc') {
+        switch (name) {
+          case 'sort_registry':
+            jsondata.sort(function(x, y) {
+              if (x.registry < y.registry) {
+                return -1;
+              } else {
+                return 1;
+              }
+            });
+            break;
+          case 'sort_country':
+            jsondata.sort(function(x, y) {
+              if (x.country < y.country) {
+                return -1;
+              } else {
+                return 1;
+              }
+            });
+            break;
+          case 'sort_ip_start':
+            jsondata.sort(function(x, y) {
+              if (x.start < y.start) {
+                return -1;
+              } else {
+                return 1;
+              }
+            });
+            break;
+          case 'sort_ip_end':
+            jsondata.sort(function(x, y) {
+              if (x.end < y.end) {
+                return -1;
+              } else {
+                return 1;
+              }
+            });
+            break;
+          default:
+            throw "sort asc error.";
+        }
+        $this.attr('value', 'desc');
+      } else {
+        switch (name) {
+          case 'sort_registry':
+            jsondata.sort(function(x, y) {
+              if (x.registry < y.registry) {
+                return 1;
+              } else {
+                return -1;
+              }
+            });
+            break;
+          case 'sort_country':
+            jsondata.sort(function(x, y) {
+              if (x.country < y.country) {
+                return 1;
+              } else {
+                return -1;
+              }
+            });
+            break;
+          case 'sort_ip_start':
+            jsondata.sort(function(x, y) {
+              if (x.start < y.start) {
+                return 1;
+              } else {
+                return -1;
+              }
+            });
+            break;
+          case 'sort_ip_end':
+            jsondata.sort(function(x, y) {
+              if (x.end < y.end) {
+                return 1;
+              } else {
+                return -1;
+              }
+            });
+            break;
+          default:
+            throw "sort desc error.";
+        }
+        $this.attr('value', 'asc');
+      }
+      root.ChangeRow(view_count);
+      return before_selected = name;
+    } catch (error) {
+      return console.log(error);
+    }
+  });
 
   $.fn.pagination = function(options) {
     options.elements = options.elements != null ? options.elements : $(this);
@@ -186,7 +306,7 @@
   IPCheck = function(address) {
     var ip, ip_int, ipgroup, _i, _len, _ref;
     ipgroup = address.match(/(\d+).(\d+).(\d+).(\d+)/);
-    if (ipgroup) {
+    if (ipgroup != null) {
       _ref = ipgroup.slice(1, 5);
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         ip = _ref[_i];
@@ -316,11 +436,11 @@
         try {
           record = data['WhoisRecord'];
           rawText = record['rawText'];
-          if (rawText) {
+          if (rawText != null) {
             rawTextList = rawText.split('\u000a\u000a');
           } else {
             rRawText = record['registryData']['rawText'];
-            if (rRawText) {
+            if (rRawText != null) {
               rawTextList = rRawText.split('\u000a\u000a');
             } else {
               throw "レコードが存在しませんでした。";
@@ -365,7 +485,7 @@
       }
       return _results;
     })();
-    $(this).UpdateTable({
+    UpdateTable({
       'registry': checks.join(',')
     });
     return FormCCClear.click();
@@ -383,7 +503,7 @@
       }
       return _results;
     })();
-    $(this).UpdateTable({
+    UpdateTable({
       'country': checks.join(',')
     });
     return FormRegClear.click();

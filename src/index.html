@@ -2,9 +2,9 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="description" content="APNICなどからIP一覧を取得、表示">
+    <meta name="description" content="APNICなどのIP一覧を取得、表示">
     <meta name="keywords" content="IPv4, IPv6, APNIC, ARIN, LACNIC, AFRINIC, ICNAA, RIPE, RIR IP Viewer, IP Viewer">
-    <title>IP Viewer</title>
+    <title>RIR IP Viewer</title>
     <link rel="shortcut icon" href="favicon.ico">
     <link type="text/css" rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
     <link type="text/css" rel="stylesheet" href="bootstrap/css/bootstrap-responsive.min.css">
@@ -20,7 +20,6 @@
                     IP Viewer
                 </a>
                 <ul class="nav">
-                	<li class="active"><a href="/">トップ</a></li>
                 	<li><a href="#usage" data-toggle="modal">このサイトについて</a></li>
                 	<li><a href="#custom" data-toggle="modal">カスタマイズ</a></li>
                 </ul>
@@ -137,10 +136,10 @@
                 <table class="table table.striped">
                 	<thead>
                 		<tr>
-                			<th>レジストリ</th>
-                			<th>国名</th>
-                			<th>IP開始位置</th>
-                			<th>IP終了位置</th>
+                			<th><button name="sort_registry" class="btn-link sort_item">レジストリ</button></th>
+                			<th><button name="sort_country" class="btn-link sort_item">国名</button></th>
+                			<th><button name="sort_ip_start" class="btn-link sort_item">IP開始位置</button></th>
+                			<th><button name="sort_ip_end" class="btn-link sort_item">IP終了位置</button></th>
                 		</tr>
                 	</thead>
                 	<tbody>

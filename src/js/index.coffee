@@ -34,32 +34,46 @@ $.fn.state = (state) ->
 # -------------------------------------------------------------
 # IP一覧の更新処理
 # -------------------------------------------------------------
-pager = NaN
+pager = null
 jsondata = []
 
-$.fn.UpdateTable = (data) ->
+LoadCircle = $('#load_circle')
+
+UpdateTable = (params) ->
     # 読み込みアニメーションなどの表示
-    $("#load_circle").css('display', 'inline')
+    LoadCircle.css('display', 'inline')
     $this = $(@)
     $this.state('loading')
 
-    $.getJSON '/json', data, (json) ->
-        # 他の関数でも使えるように代入
-        jsondata = json
+    $.ajax(
+        url: '/json',
+        data: params,
+        type: 'GET',
+        dataType: 'json',
+        success: (json, type) ->
+            try
+                # 他の関数でも使えるように代入
+                jsondata = json
 
-        # viewbarに設定
-        ShowTable 0, view_count
+                # viewbarに設定
+                ShowTable 0, view_count
 
-        # paginationの設定
-        params =
-            view_record: view_count
-            total_record: json.length
-            nav_count: pagination_count
-        pager = $("#view_pages").pagination(params)
-
-        # 読み込みアニメーションなど終了
-        $this.state('complete')
-        $("#load_circle").css('display', 'none')
+                # paginationの設定
+                params =
+                    view_record: view_count
+                    total_record: json.length
+                    nav_count: pagination_count
+                pager = $("#view_pages").pagination(params)
+            catch error
+                console.log(error)
+                alert(error)
+        error: ->
+            console.log('IP Search Error')
+        complete: ->
+            # 読み込みアニメーションなど終了
+            $this.state('complete')
+            LoadCircle.css('display', 'none')
+    )
 
 # 入力された値のぺージに更新
 # point : ページ数
@@ -88,10 +102,11 @@ ShowTable = (first, last) ->
 
 # 指定された行数に変更
 root.ChangeRow = (num) ->
-    view_count = num
+    view_count = num # 現在の値を変更
+
     $('#view_row .active').removeClass('active')
     $('#view_row li:eq(' + GetRowPoint(num) + ')').addClass('active')
-    if pager
+    if pager?
         # viewbarの更新
         ShowTable 0, view_count
 
@@ -104,6 +119,89 @@ root.ChangeRow = (num) ->
 
 GetRowPoint = (num) ->
     return (num / 50) - 1
+
+# 項目のソート
+before_selected = null
+$('button.sort_item').click ->
+    $this = $(@)
+    name = @.name
+    if before_selected != name
+        # 前回ソートしたものと別の場合の初期値
+        $this.attr('value', 'asc')
+
+    state = $this.attr('value')
+    try
+        if state == 'asc'
+            switch name
+                when 'sort_registry'
+                    jsondata.sort( (x, y) ->
+                        if x.registry < y.registry
+                            return -1
+                        else
+                            return 1
+                    )
+                when 'sort_country'
+                    jsondata.sort( (x, y) ->
+                        if x.country < y.country
+                            return -1
+                        else
+                            return 1
+                    )
+                when 'sort_ip_start'
+                    jsondata.sort( (x, y) ->
+                        if x.start < y.start
+                            return -1
+                        else
+                            return 1
+                    )
+                when 'sort_ip_end'
+                    jsondata.sort( (x, y) ->
+                        if x.end < y.end
+                            return -1
+                        else
+                            return 1
+                    )
+                else
+                    throw "sort asc error."
+            $this.attr('value', 'desc')
+        else
+            switch name
+                when 'sort_registry'
+                    jsondata.sort( (x, y) ->
+                        if x.registry < y.registry
+                            return 1
+                        else
+                            return -1
+                    )
+                when 'sort_country'
+                    jsondata.sort( (x, y) ->
+                        if x.country < y.country
+                            return 1
+                        else
+                            return -1
+                    )
+                when 'sort_ip_start'
+                    jsondata.sort( (x, y) ->
+                        if x.start < y.start
+                            return 1
+                        else
+                            return -1
+                    )
+                when 'sort_ip_end'
+                    jsondata.sort( (x, y) ->
+                        if x.end < y.end
+                            return 1
+                        else
+                            return -1
+                    )
+                else
+                    throw "sort desc error."
+            $this.attr('value', 'asc')
+
+        root.ChangeRow(view_count)
+        before_selected = name
+    catch error
+        console.log(error)
 
 # -------------------------------------------------------------
 # ページネーション
@@ -218,7 +316,7 @@ Pagination.prototype = {
 # 戻り値: 正常終了ならtrue, 不正な値ならfalse、IPアドレスではないならnull
 IPCheck = (address) ->
     ipgroup = address.match(/(\d+).(\d+).(\d+).(\d+)/)
-    if ipgroup
+    if ipgroup?
         for ip in ipgroup[1..4]
             ip_int = parseInt(ip)
             if ip_int < 0 || 255 < ip_int
@@ -354,13 +452,13 @@ WhoisSearch.click ->
                 # データの取得・加工
                 record = data['WhoisRecord']
                 rawText = record['rawText']
-                if rawText
+                if rawText?
                     # 個別のものを取得
                     rawTextList = rawText.split('\u000a\u000a')
                 else
                     # 個別のものがなければレジストリから取得する
                     rRawText = record['registryData']['rawText']
-                    if rRawText
+                    if rRawText?
                         rawTextList = rRawText.split('\u000a\u000a')
                     else
                         # レジストリ側も存在しない場合
@@ -389,19 +487,19 @@ WhoisSearch.click ->
 
 # -------------------------------------------------------------
 
-# レジストリのチェックボックスの結果を有効
+# レジストリのチェックボックスの結果を有効化
 $('#registry .save').click ->
     checks = (num.value for num in $('#registry .rir:checked'))
 
-    $(@).UpdateTable {'registry': checks.join(',')}
+    UpdateTable {'registry': checks.join(',')}
 
     FormCCClear.click()
 
-# 国名のチェックボックスの結果を有効
+# 国名のチェックボックスの結果を有効化
 $('#country .save').click ->
     checks = (num.value for num in $('#country .cc:checked'))
 
-    $(@).UpdateTable {'country': checks.join(',')}
+    UpdateTable {'country': checks.join(',')}
 
     FormRegClear.click()
 
