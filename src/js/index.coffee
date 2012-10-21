@@ -120,9 +120,20 @@ root.ChangeRow = (num) ->
 GetRowPoint = (num) ->
     return (num / 50) - 1
 
+# ソート用関数
+Less = (x, y) ->
+    if x < y
+        return -1
+    if x > y
+        return 1
+    return 0
+
 # 項目のソート
 before_selected = null
 $('button.sort_item').click ->
+    if jsondata.length == 0
+        return
+
     $this = $(@)
     name = @.name
     if before_selected != name
@@ -132,67 +143,45 @@ $('button.sort_item').click ->
     state = $this.attr('value')
     try
         if state == 'asc'
+            # 昇順
             switch name
                 when 'sort_registry'
                     jsondata.sort( (x, y) ->
-                        if x.registry < y.registry
-                            return -1
-                        else
-                            return 1
+                        return Less(x.registry, y.registry)
                     )
                 when 'sort_country'
                     jsondata.sort( (x, y) ->
-                        if x.country < y.country
-                            return -1
-                        else
-                            return 1
+                        return Less(x.country, y.country)
                     )
                 when 'sort_ip_start'
                     jsondata.sort( (x, y) ->
-                        if x.start < y.start
-                            return -1
-                        else
-                            return 1
+                        return Less(x.start, y.start)
                     )
                 when 'sort_ip_end'
                     jsondata.sort( (x, y) ->
-                        if x.end < y.end
-                            return -1
-                        else
-                            return 1
+                        return Less(x.end, y.end)
                     )
                 else
                     throw "sort asc error."
             $this.attr('value', 'desc')
         else
+            # 降順
             switch name
                 when 'sort_registry'
                     jsondata.sort( (x, y) ->
-                        if x.registry < y.registry
-                            return 1
-                        else
-                            return -1
+                        return Less(x.registry, y.registry) * -1
                     )
                 when 'sort_country'
                     jsondata.sort( (x, y) ->
-                        if x.country < y.country
-                            return 1
-                        else
-                            return -1
+                        return Less(x.country, y.country) * -1
                     )
                 when 'sort_ip_start'
                     jsondata.sort( (x, y) ->
-                        if x.start < y.start
-                            return 1
-                        else
-                            return -1
+                        return Less(x.start, y.start) * -1
                     )
                 when 'sort_ip_end'
                     jsondata.sort( (x, y) ->
-                        if x.end < y.end
-                            return 1
-                        else
-                            return -1
+                        return Less(x.end, y.end) * -1
                     )
                 else
                     throw "sort desc error."

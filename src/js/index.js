@@ -2,7 +2,7 @@
 (function() {
   ﻿;
 
-  var CClear, CReset, CTextReplace, CheckBrowserIE, CustomTextPlus, FormCCClear, FormRegClear, GetInputIP, GetRowPoint, IPCheck, IPSearch, InputSearchIP, LoadCircle, Pagination, SearchCircle, SearchCommonCloseBtnString, ShowTable, UpdateTable, WhoisSearch, before_selected, custom_area, default_custom_text, jsondata, pager, pagination_count, root, view_count, whois_url;
+  var CClear, CReset, CTextReplace, CheckBrowserIE, CustomTextPlus, FormCCClear, FormRegClear, GetInputIP, GetRowPoint, IPCheck, IPSearch, InputSearchIP, Less, LoadCircle, Pagination, SearchCircle, SearchCommonCloseBtnString, ShowTable, UpdateTable, WhoisSearch, before_selected, custom_area, default_custom_text, jsondata, pager, pagination_count, root, view_count, whois_url;
 
   view_count = 150;
 
@@ -111,10 +111,23 @@
     return (num / 50) - 1;
   };
 
+  Less = function(x, y) {
+    if (x < y) {
+      return -1;
+    }
+    if (x > y) {
+      return 1;
+    }
+    return 0;
+  };
+
   before_selected = null;
 
   $('button.sort_item').click(function() {
     var $this, name, state;
+    if (jsondata.length === 0) {
+      return;
+    }
     $this = $(this);
     name = this.name;
     if (before_selected !== name) {
@@ -126,38 +139,22 @@
         switch (name) {
           case 'sort_registry':
             jsondata.sort(function(x, y) {
-              if (x.registry < y.registry) {
-                return -1;
-              } else {
-                return 1;
-              }
+              return Less(x.registry, y.registry);
             });
             break;
           case 'sort_country':
             jsondata.sort(function(x, y) {
-              if (x.country < y.country) {
-                return -1;
-              } else {
-                return 1;
-              }
+              return Less(x.country, y.country);
             });
             break;
           case 'sort_ip_start':
             jsondata.sort(function(x, y) {
-              if (x.start < y.start) {
-                return -1;
-              } else {
-                return 1;
-              }
+              return Less(x.start, y.start);
             });
             break;
           case 'sort_ip_end':
             jsondata.sort(function(x, y) {
-              if (x.end < y.end) {
-                return -1;
-              } else {
-                return 1;
-              }
+              return Less(x.end, y.end);
             });
             break;
           default:
@@ -168,38 +165,22 @@
         switch (name) {
           case 'sort_registry':
             jsondata.sort(function(x, y) {
-              if (x.registry < y.registry) {
-                return 1;
-              } else {
-                return -1;
-              }
+              return Less(x.registry, y.registry) * -1;
             });
             break;
           case 'sort_country':
             jsondata.sort(function(x, y) {
-              if (x.country < y.country) {
-                return 1;
-              } else {
-                return -1;
-              }
+              return Less(x.country, y.country) * -1;
             });
             break;
           case 'sort_ip_start':
             jsondata.sort(function(x, y) {
-              if (x.start < y.start) {
-                return 1;
-              } else {
-                return -1;
-              }
+              return Less(x.start, y.start) * -1;
             });
             break;
           case 'sort_ip_end':
             jsondata.sort(function(x, y) {
-              if (x.end < y.end) {
-                return 1;
-              } else {
-                return -1;
-              }
+              return Less(x.end, y.end) * -1;
             });
             break;
           default:
