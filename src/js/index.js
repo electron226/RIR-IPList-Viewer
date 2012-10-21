@@ -33,17 +33,18 @@
 
   LoadCircle = $('#load_circle');
 
-  UpdateTable = function(params) {
+  UpdateTable = function(data) {
     var $this;
     LoadCircle.css('display', 'inline');
     $this = $(this);
     $this.state('loading');
     return $.ajax({
       url: '/json',
-      data: params,
+      data: data,
       type: 'GET',
       dataType: 'json',
       success: function(json, type) {
+        var params;
         try {
           jsondata = json;
           ShowTable(0, view_count);

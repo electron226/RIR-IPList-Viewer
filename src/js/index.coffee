@@ -39,7 +39,7 @@ jsondata = []
 
 LoadCircle = $('#load_circle')
 
-UpdateTable = (params) ->
+UpdateTable = (data) ->
     # 読み込みアニメーションなどの表示
     LoadCircle.css('display', 'inline')
     $this = $(@)
@@ -47,7 +47,7 @@ UpdateTable = (params) ->
 
     $.ajax(
         url: '/json',
-        data: params,
+        data: data,
         type: 'GET',
         dataType: 'json',
         success: (json, type) ->

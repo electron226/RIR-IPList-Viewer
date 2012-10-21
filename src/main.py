@@ -36,12 +36,12 @@ import ips
 import iplist
 
 ##
-# @brief 指定した引数のデータを取得し、連想配列のリストを返す
+# @brief 指定した引数のデータを取得し、JSONのリストを返す
 #
-# @param countries 取得する国名のリスト
-# @param registry レジストリ名
+# @param [in] countries 取得する国名のリスト
+# @param [in] registry レジストリ名
 #
-# @return 連想配列のリスト
+# @return JSONの連想配列を含むリスト
 def GetCreateJSONList(countries, registry):
     tempdict = common.GetMultiData(countries, registry)
 
@@ -51,7 +51,7 @@ def GetCreateJSONList(countries, registry):
         for ipobj in iplist_data:
             ip = ips.IPDecoder(ipobj)
             json = {"country": country, "registry": registry,
-                    "start": ip.start, "end": ip.end,
+                    "start" : ip.start, "end" : ip.end,
                     "StartIP": ip.StartIP(), "EndIP": ip.EndIP()}
             jsonlist.append(json)
 
@@ -60,9 +60,9 @@ def GetCreateJSONList(countries, registry):
 ##
 # @brief 指定したレジストリのデータを取得し、連想配列のリストを返す
 #
-# @param registries 取得するレジストリのリスト
+# @param [in] registries 取得するレジストリのリスト
 #
-# @return 連想配列のリスト
+# @return JSONの連想配列を含むリスト
 def GetRegistries(registries):
     jsonlist = []
     for registry in registries:
@@ -75,9 +75,9 @@ def GetRegistries(registries):
 ##
 # @brief 指定した国名のデータを取得し、連想配列のリストで返す
 #
-# @param cclist 取得する国名のリスト
+# @param [in] cclist 取得する国名のリスト
 #
-# @return 連想配列のリスト
+# @return JSONの連想配列を含むリスト
 def GetCountries(cclist):
     jsonlist = []
     for registry in common.RIR:
@@ -101,9 +101,11 @@ class GetIPSearchHandler(webapp.RequestHandler):
     ##
     # @brief IPアドレスを検索
     #
-    # @param search_ipobj 検索するIPアドレスのIPクラスのオブジェクト
+    # @param [in] search_ipobj 検索するIPアドレスのIPクラスのオブジェクト
     #
-    # @return 見つけたら連想配列のオブジェクト、見つからなかったらNone
+    # @retval 連想配列 IPアドレスが見つかった場合、
+    #                  キー[country, name]を含む連想配列を返す
+    # @retval None     見つからなかった場合
     def search(self, search_ipobj):
         for registry in common.RIR.iterkeys():
             country_dict = common.GetMultiData(
@@ -127,6 +129,8 @@ class GetIPSearchHandler(webapp.RequestHandler):
 
     ##
     # @brief GETリクエストを受け取り、JSON形式のデータを渡す
+    #
+    # @return なし
     def get(self):
         errflag = True
 
@@ -157,8 +161,12 @@ class GetJSONBase(webapp.RequestHandler):
     ##
     # @brief リクエストとともに渡された引数を受け取り、それを元にJSONを取得。
     #
-    # @return JSON形式のデータ
-    def GetJSONSwitch(self):
+    # @param [in] sortings 取得したJSONをソートする要素順を表す。
+    #                      デフォルト値は['country', 'registry']。
+    #
+    # @return JSONの連想配列を含むリスト。
+    #         見つからなかったら全てのキーの値が空文字
+    def GetJSONSwitch(self, sortings = ['country', 'registry']):
         registry = self.request.get('registry')
         if registry:
             registries = registry.split(',')
@@ -172,13 +180,14 @@ class GetJSONBase(webapp.RequestHandler):
                 # 空
                 jsonlist = [{ "country" : "",
                               "registry": "",
-                              "start": "",
-                              "end": "",
+                              "start" : "",
+                              "end" : "",
                               "StartIP": "",
                               "EndIP": ""}]
 
-        jsonlist.sort(lambda x, y: cmp(x["country"], y["country"]));
-        jsonlist.sort(lambda x, y: cmp(x["registry"], y["registry"]));
+        if sortings:
+            for item in sortings:
+                jsonlist.sort( lambda x, y: cmp(x[ item ], y[ item ]) );
 
         return jsonlist
 
@@ -190,7 +199,11 @@ class GetJSONHandler(GetJSONBase):
     #
     # @return なし
     def get(self):
-        jsonlist = self.GetJSONSwitch()
+        sortings = self.request.get('sortings')
+        if sortings:
+            jsonlist = self.GetJSONSwitch(sortings)
+        else:
+            jsonlist = self.GetJSONSwitch()
 
         ccjson = simplejson.dumps(jsonlist)
 
@@ -208,8 +221,8 @@ class GetJSONCustomHandler(GetJSONBase):
     ##
     # @brief スレッドで行う置き換え処理
     #
-    # @param settings 置き換える元文字列
-    # @param jsonlist jsonのリスト
+    # @param [in] settings 置き換える元文字列
+    # @param [in] jsonlist jsonのリスト
     #
     # @return なし
     def thread(self, settings, jsonlist):
