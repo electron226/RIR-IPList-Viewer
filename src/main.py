@@ -4,7 +4,7 @@
 ##
 # @file main.py
 # @brief リクエストの処理
-# @author khz
+# @author electron226
 
 import os
 import re
@@ -14,20 +14,18 @@ import datetime
 import StringIO
 import zipfile
 import threading
-
-# DJANGO
-os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
-
-from google.appengine.dist import use_library
-use_library('django', '1.2')
-
-from django.utils import simplejson
+import json
 
 from google.appengine.api import memcache
 from google.appengine.api import urlfetch
-from google.appengine.ext import webapp
-from google.appengine.ext.webapp import util
-from google.appengine.ext.webapp import template
+
+import webapp2
+import jinja2
+
+JINJA_ENVIRONMENT = jinja2.Environment(
+        loader = jinja2.FileSystemLoader(os.path.dirname(__file__)),
+        extensions = ['jinja2.ext.autoescape'],
+        autoescape = True)
 
 import common
 import ccdict
@@ -47,13 +45,15 @@ def GetCreateJSONList(countries, registry):
 
     jsonlist = []
     for country, ccjson in tempdict.iteritems():
-        iplist_data = simplejson.loads(ccjson)
+        iplist_data = json.loads(ccjson)
         for ipobj in iplist_data:
             ip = ips.IPDecoder(ipobj)
-            json = {"country": country, "registry": registry,
+            jsonobj = {
+                    "country": country, "registry": registry,
                     "start" : ip.start, "end" : ip.end,
-                    "StartIP": ip.StartIP(), "EndIP": ip.EndIP()}
-            jsonlist.append(json)
+                    "StartIP": ip.StartIP(), "EndIP": ip.EndIP()
+            }
+            jsonlist.append(jsonobj)
 
     return jsonlist
 
@@ -95,7 +95,7 @@ def GetCountries(cclist):
 
 ##
 # @brief IPアドレスを検索して、該当したアドレスを返すクラス
-class GetIPSearchHandler(webapp.RequestHandler):
+class GetIPSearchHandler(webapp2.RequestHandler):
     ipv4_rule = re.compile(r'(\d+).(\d+).(\d+).(\d+)')
 
     ##
@@ -113,7 +113,7 @@ class GetIPSearchHandler(webapp.RequestHandler):
             for countries in country_dict.itervalues():
                 tempdict = common.GetMultiData(countries, registry)
                 for country, ccjson in tempdict.iteritems():
-                    ip_listdata = simplejson.loads(ccjson)
+                    ip_listdata = json.loads(ccjson)
                     for ipobj in ip_listdata:
                         ip = ips.IPDecoder(ipobj)
                         if ip.start <= search_ipobj.start \
@@ -153,11 +153,11 @@ class GetIPSearchHandler(webapp.RequestHandler):
             return_json = { "country": "",
                              "name": "" }
 
-        self.response.out.write(simplejson.dumps(return_json))
+        self.response.out.write(json.dumps(return_json))
 
 ##
 # @brief JSONのリクエスト処理を行うクラスのベースクラス
-class GetJSONBase(webapp.RequestHandler):
+class GetJSONBase(webapp2.RequestHandler):
     ##
     # @brief リクエストとともに渡された引数を受け取り、それを元にJSONを取得。
     #
@@ -205,7 +205,7 @@ class GetJSONHandler(GetJSONBase):
         else:
             jsonlist = self.GetJSONSwitch()
 
-        ccjson = simplejson.dumps(jsonlist)
+        ccjson = json.dumps(jsonlist)
 
         self.response.content_type = "application/json"
         self.response.out.write(ccjson)
@@ -213,7 +213,11 @@ class GetJSONHandler(GetJSONBase):
 ##
 # @brief サーバ側でJSONデータの加工処理を行うクラス
 class GetJSONCustomHandler(GetJSONBase):
-    def __init__(self):
+    def __init__(self, request, response):
+        # Set self.request, self.response and self.app.
+        self.initialize(request, response)
+
+        # my custom.
         self.liststr = ""
         self.threads = []
         self.lock = threading.Lock()
@@ -271,12 +275,12 @@ class GetJSONCustomHandler(GetJSONBase):
             # データを返す
             self.response.headers['Content-Type'] ='application/zip'
             self.response.headers['Content-Disposition'] = \
-                    'attachment; filename=list.zip'	
+                    'attachment; filename=list.zip'
             self.response.out.write(zipdata.getvalue())
 
 ##
 # @brief 定期的にスケジュール処理をするクラス
-class CronHandler(webapp.RequestHandler):
+class CronHandler(webapp2.RequestHandler):
     ##
     # @brief リクエストを受け取ったら更新処理
     #
@@ -287,7 +291,7 @@ class CronHandler(webapp.RequestHandler):
 
 ##
 # @brief トップページのリクエストを処理するクラス
-class MainHandler(webapp.RequestHandler):
+class MainHandler(webapp2.RequestHandler):
     ##
     # @brief サイトのTOPページのリクエストを処理
     #
@@ -338,25 +342,15 @@ class MainHandler(webapp.RequestHandler):
                                 lambda x, y: cmp(x, y)),
                             'lastupdate' : lastupdate,
                             }
-        path = os.path.join(os.path.dirname(__file__), 'index.html')
-        self.response.out.write(template.render(path, template_values))
+        template = JINJA_ENVIRONMENT.get_template('index.html')
+        self.response.out.write(template.render(template_values))
 
-##
-# @brief webappを使った処理の開始
-#
-# @return なし
-def main():
-    application = webapp.WSGIApplication([
-        ('/', MainHandler),
-        ('/json', GetJSONHandler),
-        ('/jsoncustom', GetJSONCustomHandler),
-        ('/cron', CronHandler),
-        ('/datastore', datastore.DataStoreHandler),
-        ('/search', GetIPSearchHandler),
-        ], debug=False)
-    util.run_wsgi_app(application)
-
-##
-# @brief スタート位置
-if __name__ == '__main__':
-    main()
+# entry point
+application = webapp2.WSGIApplication([
+    ('/', MainHandler),
+    ('/json', GetJSONHandler),
+    ('/jsoncustom', GetJSONCustomHandler),
+    ('/cron', CronHandler),
+    ('/datastore', datastore.DataStoreHandler),
+    ('/search', GetIPSearchHandler),
+    ], debug=True)

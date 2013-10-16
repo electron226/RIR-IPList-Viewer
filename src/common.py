@@ -4,7 +4,7 @@
 ##
 # @file common.py
 # @brief 全てのファイルで共通使用する
-# @author khz
+# @author electron226
 
 import pickle
 import logging
@@ -15,24 +15,25 @@ from google.appengine.ext import db
 
 ## 割当リストの取得先
 RIR = {
-        'ARIN'    : 'http://ftp.apnic.net/stats/arin/delegated-arin-latest',
-        'APNIC'   : 'http://ftp.apnic.net/stats/apnic/delegated-apnic-latest',
-        'RIPE'    : 'http://ftp.apnic.net/stats/ripe-ncc/delegated-ripencc-latest',
-        'LACNIC'  : 'http://ftp.apnic.net/stats/lacnic/delegated-lacnic-latest',
-        'AFRINIC' : 'http://ftp.apnic.net/stats/afrinic/delegated-afrinic-latest',
+        u'ARIN'    : u'http://ftp.apnic.net/stats/arin/delegated-arin-extended-latest',
+        u'APNIC'   : u'http://ftp.apnic.net/stats/apnic/delegated-apnic-extended-latest',
+        u'RIPE'    : u'http://ftp.apnic.net/stats/ripe-ncc/delegated-ripencc-extended-latest',
+        u'LACNIC'  : u'http://ftp.apnic.net/stats/lacnic/delegated-lacnic-extended-latest',
+        u'AFRINIC' : u'http://ftp.apnic.net/stats/afrinic/delegated-afrinic-extended-latest',
         }
 
 ## 取得先の担当地域
 RIREXP = {
-        'ARIN'    : ['北アメリカ'],
-        'APNIC'   : ['アジア', '太平洋'],
-        'RIPE'    : ['ヨーロッパ', '中東', '中央アジア'],
-        'LACNIC'  : ['ラテンアメリカ', 'カリブ海'],
-        'AFRINIC' : ['アフリカ'],
+        u'ARIN'    : [u'アメリカ'],
+        u'APNIC'   : [u'アジア', u'太平洋'],
+        u'RIPE'    : [u'ヨーロッパ', u'中東', u'中央アジア'],
+        u'LACNIC'  : [u'ラテンアメリカ', u'カリブ海'],
+        u'AFRINIC' : [u'アフリカ'],
         }
 
-## 割当先から取得したデータの一時保存用キー。文字列の置き換え機能を使う。
-MEMCACHE_CONTENT    = '%s_CONTENT'
+## 割当先から取得したデータの一時保存用キー
+MEMCACHE_CONTENT_KEY_PREFIX = '%s_CONTENT'
+MEMCACHE_CONTENT_LENGTH = '%s_CONTENT_SEGMENT_LENGTH' # コンテンツの分割数
 
 ## 最後の更新日時の一時保存用
 MEMCACHE_LASTUPDATE = 'LASTUPDATE'

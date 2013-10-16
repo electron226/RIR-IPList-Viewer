@@ -4,22 +4,22 @@
 ##
 # @file datastore.py
 # @brief IP割当一覧のデータストア書き込み
-# @author khz
+# @author electron226
 
 import re
 import hashlib
 import zlib
 import logging
+import json
 
-from django.utils import simplejson
+import webapp2
 from google.appengine.api import memcache
-from google.appengine.ext import webapp
 
 import common
 import ips
 
 ## 正規表現(ハッシュ値確認用)
-header_rule = re.compile(r'\d{1}\|[a-z]+\|\d+\|\d+\|\d+\|\d+\|[+-]?\d+')
+header_rule = re.compile(r'[\d.]+\|[a-z]+\|\d*\|\d*\|\d*\|\d*\|[+-]?\d+')
 
 ##
 # @brief 正規表現(レコード用, IPv4)\n
@@ -30,9 +30,9 @@ record_rule = re.compile(r'([A-Z]{2})\|ipv4\|(\d+).(\d+).(\d+).(\d+)\|(\d+)')
 
 ##
 # @brief リクエストを受け取り、更新処理を行う。
-# 
+#
 #        更新に使うデータはIPListクラスで保存されている。
-class DataStoreHandler(webapp.RequestHandler):
+class DataStoreHandler(webapp2.RequestHandler):
     ##
     # @brief 割当一覧の最適化(圧縮)処理。
     #
@@ -70,22 +70,39 @@ class DataStoreHandler(webapp.RequestHandler):
         
     ##
     # @brief リクエストを受け取り、更新処理を行う
-    #        
+    #
     #        更新に使うデータはIPListクラスで保存されている。
     #
     # @return 更新が成功したか否か(True, False)
     def post(self):
         registry = self.request.get('registry')
 
-        cache = memcache.get(common.MEMCACHE_CONTENT % registry) #@UndefinedVariable
-        if not cache:
-            return False
+        segment_length = memcache.get(common.MEMCACHE_CONTENT_LENGTH % registry)
+        if segment_length is None:
+            logging.error(
+                "Don't update registry." +
+                " Can't get the content of the registry. '%s'" % registry)
+            return
+
+        getKeys = []
+        for i in xrange(0, segment_length):
+            getKeys.append(str(i))
+        contents = memcache.get_multi(getKeys, common.MEMCACHE_CONTENT_KEY_PREFIX % registry)
+
+        cache = ''
+        for i in xrange(0, segment_length):
+            cache = cache + contents[str(i)]
+
+        memcache.delete(common.MEMCACHE_CONTENT_LENGTH % registry)
+        memcache.delete_multi(
+                keys = getKeys,
+                key_prefix = common.MEMCACHE_CONTENT_KEY_PREFIX % registry)
 
         try:
             content = zlib.decompress(cache)
         except zlib.error:
             logging.error('zlib Decompress Error. "%s"' % registry)
-            return False
+            return
 
         # 取得したIP一覧を改行コードで分割
         contents = content.split('\n')
@@ -108,8 +125,8 @@ class DataStoreHandler(webapp.RequestHandler):
                 break
 
         if not newhash:
-            logging.error('Search the "%s" header.' % registry)
-            return False
+            logging.error('do not find the "%s" header.' % registry)
+            return
 
         if newget:
             logging.info('Start update the "%s".' % registry)
@@ -131,20 +148,20 @@ class DataStoreHandler(webapp.RequestHandler):
                     ipdict[record.group(1)].append(ipobj)
 
             if len(ipdict) == 0:
-                return False
+                return
 
             # 最適化
             logging.info('IPList Combine Start.')
             self.Combine(ipdict)
             logging.info('IPList Combine End.')
-       
+
             # 保存
             logging.info('Get Update IPList Start. "%s"' % registry)
 
             # memcacheとデータストアに保存
             memcache_dict = {}
             for country, ipobj in ipdict.iteritems():
-                ccjson = simplejson.dumps(ipobj, cls = ips.IPEncoder)
+                ccjson = json.dumps(ipobj, cls = ips.IPEncoder)
                 common.WriteRecord(country, registry, ccjson, True)
                 memcache_dict["%s" % country] = ccjson
 

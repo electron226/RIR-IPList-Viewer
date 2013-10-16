@@ -1,7 +1,8 @@
 application: 8risky
 version: 3
-runtime: python
+runtime: python27
 api_version: 1
+threadsafe: no
 
 handlers:
 - url: /favicon\.ico
@@ -9,21 +10,21 @@ handlers:
   upload: favicon\.ico
 
 - url: /cron
-  script: main.py
+  script: main.application
   login: admin
 
 - url: /datastore
-  script: main.py
+  script: main.application
   login: admin
 
 - url: /json
-  script: main.py
+  script: main.application
 
 - url: /jsoncustom
-  script: main.py
+  script: main.application
 
 - url: /search
-  script: main.py
+  script: main.application
 
 - url: /bootstrap
   static_dir: bootstrap
@@ -40,8 +41,14 @@ handlers:
 - url: /img
   static_dir: img
 
-- url: .*
-  script: main.py
+- url: /.*
+  script: main.application
+
+libraries:
+- name: webapp2
+  version: latest
+- name: jinja2
+  version: latest
 
 builtins:
   - remote_api: on

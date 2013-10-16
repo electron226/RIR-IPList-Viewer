@@ -4,10 +4,12 @@
 ##
 # @file iplist.py
 # @brief 割当リストの取得
-# @author khz
+# @author electron226
 
 import logging
+import math
 import zlib
+import exceptions
 
 from google.appengine.api import taskqueue
 from google.appengine.api import urlfetch
@@ -29,13 +31,40 @@ class IPList():
     def handle_urlfetch(self, rpc, registry):
         logging.info('Download Start "%s".' % registry)
 
-        result = rpc.get_result()
-        if result.status_code != 200:
-            raise urlfetch.DownloadError
+        try:
+            result = rpc.get_result()
+            if result.status_code != 200:
+                raise urlfetch.DownloadError
+        except urlfetch.DownloadError:
+            logging.error('Can\'t download the file.')
+            return
 
-        cache_data = zlib.compress(result.content)
-        if not memcache.set(common.MEMCACHE_CONTENT % registry, cache_data, 300): #@UndefinedVariable
-            raise Exception('Set memcache failure. "%s"' % registry)
+        try:
+            cache_data = zlib.compress(result.content)
+        except zlib.error:
+            logging.error('Get failure. zlib Compress Error.')
+            return
+
+        segment_size = (1000000.0) # bytes(maximum length of memcache in gae)
+        segment_length = int(math.ceil(float(len(cache_data)) / segment_size))
+
+        writeDicts = {}
+        try:
+            for i in range(0, segment_length):
+                writeDicts[str(i)] = \
+                        cache_data[int(i * segment_size) : \
+                                   int((i + 1) * segment_size)]
+
+            if memcache.set_multi(writeDicts, 300,
+                    common.MEMCACHE_CONTENT_KEY_PREFIX % registry):
+                raise RuntimeError('Set memcache failure. "%s"' % registry)
+            if not memcache.set(
+                    common.MEMCACHE_CONTENT_LENGTH % registry,
+                    segment_length, 300):
+                raise RuntimeError(
+                    'Set segment length of memcache failure. "%s"' % registry)
+        except ValueError, e:
+            logging.error(e)
 
     def create_callback(self, rpc, registry):
         return lambda: self.handle_urlfetch(rpc, registry)
@@ -58,12 +87,6 @@ class IPList():
         for rpc in rpcs:
             try:
                 rpc.wait() # 完了まで待機、コールバック関数を呼び出す
-            except urlfetch.DownloadError:
-                logging.error('Can\'t download the file.')
-                return False
-            except zlib.error:
-                logging.error('Get failure. zlib Compress Error.')
-                return False
             except Exception, e:
                 logging.error(e)
                 return False

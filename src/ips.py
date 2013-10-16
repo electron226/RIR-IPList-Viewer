@@ -4,9 +4,9 @@
 ##
 # @file ips.py
 # @brief IPアドレス関係
-# @author khz
+# @author electron226
 
-from django.utils import simplejson
+import json
 
 # IPアドレス範囲を格納するクラス
 ##
@@ -63,7 +63,7 @@ class IP:
 
 ##
 # @brief JSON形式のデータに変換
-class IPEncoder(simplejson.JSONEncoder):
+class IPEncoder(json.JSONEncoder):
     ##
     # @brief JSON形式のデータに変換。
     #
@@ -76,7 +76,7 @@ class IPEncoder(simplejson.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, IP):
             return [obj.start, obj.value]
-        return simplejson.JSONEncoder.default(self, obj)
+        return json.JSONEncoder.default(self, obj)
 
 ##
 # @brief IPクラスのオブジェクトに変換
