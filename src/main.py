@@ -290,6 +290,63 @@ class CronHandler(webapp2.RequestHandler):
         ipl.retrieve(common.RIR)
 
 ##
+# カスタムページのリクエストを処理するクラス
+# MainHandlerとほぼ同じ
+class CustomHandler(webapp2.RequestHandler):
+    ##
+    # @brief サイトのTOPページのリクエストを処理
+    #
+    # @return なし
+    def get(self):
+        # 全てのレジストリの国名データを取得
+        all_countries_cache = []
+        for registry in common.RIR.iterkeys():
+            try:
+                recordlist = common.GetMultiData(
+                        [common.COUNTRIES_KEYNAME], registry)
+            except RuntimeError, re:
+                logging.warning(re)
+                continue
+            all_countries_cache += recordlist[common.COUNTRIES_KEYNAME]
+        all_countries_cache = list(set(all_countries_cache))
+
+        # 国名の文字コードと国名を辞書型で設定
+        ccdict_name = ccdict.countries_dict
+        all_countries_dict = {}
+        for country in all_countries_cache:
+            if ccdict_name.has_key(country):
+                all_countries_dict[country] = ccdict_name[country]
+            else:
+                all_countries_dict[country] = ''
+
+        # 取得済みのレジストリの取得
+        exist_rir = {}
+        rirrecords = common.IPStore.gql("WHERE name = :1", common.HASH_KEYNAME)
+        for record in rirrecords:
+            registry = record.registry
+            exist_rir[registry] = common.RIREXP[registry]
+
+        # 最後の更新日時のデータを取得
+        lastupdate = memcache.get(common.MEMCACHE_LASTUPDATE)
+        if not lastupdate:
+            timerecord = common.GetLastUpdateDate()
+            if timerecord:
+                uptime = timerecord.time
+                uptime += datetime.timedelta(hours = 9)
+                lastupdate = uptime.strftime("%Y/%m/%d %H:%M:%S")
+                if not memcache.set(common.MEMCACHE_LASTUPDATE, lastupdate):
+                    logging.error("Can't set memcache of last update time.")
+
+        template_values = { 'rir' : sorted(exist_rir.items(),
+                                            lambda x, y: cmp(x, y)),
+                            'countries' : sorted(all_countries_dict.items(),
+                                lambda x, y: cmp(x, y)),
+                            'lastupdate' : lastupdate,
+                            }
+        template = JINJA_ENVIRONMENT.get_template('custom.html')
+        self.response.out.write(template.render(template_values))
+
+##
 # @brief トップページのリクエストを処理するクラス
 class MainHandler(webapp2.RequestHandler):
     ##
@@ -348,6 +405,7 @@ class MainHandler(webapp2.RequestHandler):
 # entry point
 application = webapp2.WSGIApplication([
     ('/', MainHandler),
+    ('/custom', CustomHandler),
     ('/json', GetJSONHandler),
     ('/jsoncustom', GetJSONCustomHandler),
     ('/cron', CronHandler),

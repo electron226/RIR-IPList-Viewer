@@ -23,6 +23,9 @@ handlers:
 - url: /jsoncustom
   script: main.application
 
+- url: /custom
+  script: main.application
+
 - url: /search
   script: main.application
 

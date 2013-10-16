@@ -73,7 +73,7 @@ class DataStoreHandler(webapp2.RequestHandler):
     #
     #        更新に使うデータはIPListクラスで保存されている。
     #
-    # @return 更新が成功したか否か(True, False)
+    # @return なし
     def post(self):
         registry = self.request.get('registry')
 
@@ -87,7 +87,8 @@ class DataStoreHandler(webapp2.RequestHandler):
         getKeys = []
         for i in xrange(0, segment_length):
             getKeys.append(str(i))
-        contents = memcache.get_multi(getKeys, common.MEMCACHE_CONTENT_KEY_PREFIX % registry)
+        contents = memcache.get_multi(
+                getKeys, common.MEMCACHE_CONTENT_KEY_PREFIX % registry)
 
         cache = ''
         for i in xrange(0, segment_length):

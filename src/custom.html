@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="description" content="APNICなどのIP一覧を取得、表示">
+    <meta name="keywords" content="IPv4, IPv6, APNIC, ARIN, LACNIC, AFRINIC, ICNAA, RIPE, RIR IP Viewer, IP Viewer">
+    <title>RIR IP Viewer - custom page</title>
+    <link rel="stylesheet" href="css/custom.min.css" type="text/css" charset="utf-8">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js" type="text/javascript"></script>
+    <script type="text/javascript" src="js/custom.min.js"></script>
+</head>
+<body>
+
+<header>
+  <h2>RIR IP Viewer - custom page.</h2>
+  <h5>一覧更新日時(JST): {{ lastupdate }}</h5>
+
+  <div id="custom">
+    <div class="button">
+      <button class="registry">レジストリ</button>
+      <button class="country">国名</button>
+      <button class="ipstart">IP開始</button>
+      <button class="ipend">IP終了</button>
+      <button class="reset">リセット</button>
+      <button class="clear">クリア</button>
+    </div>
+    <input type="text" name="custom_string" style="width: 500px">
+    <button class="download">ダウンロード</button>
+
+    <h5>出力例<div class="result"></div></h5>
+    <h5>直接ダウンロードURL<div class="result_url"></div></h5>
+  </div>
+</header>
+
+<section>
+  <article id="registry">
+    <div>レジストリ</div>
+    <table>
+      <tr>
+        <td>
+          <label><input type="checkbox" class="all">ALL</label>
+        </td>
+      </tr>
+      <tr class="element">
+        {% for registry, explist in rir %}
+          <td>
+            <label class="checkbox">
+              <input type="checkbox" class="rir" value="{{ registry }}">{{ registry|escape }}
+            </label>
+          </td>
+        {% endfor %}
+      </tr>
+    </table>
+  </article>
+
+  <article id="country">
+    <div>国名</div>
+    <table>
+      <tr>
+        <td>
+          <label><input type="checkbox" class="all">ALL</label>
+        </td>
+      </tr>
+      <tr class="element">
+        {% for cc, name in countries %}
+          <td>
+            <label class="checkbox">
+                <input type="checkbox" class="cc" value="{{ cc }}">{{ cc|escape }}
+                <span style="margin: 3px">{{ name|escape }}</span>
+            </label>
+          </td>
+          {% if loop.index % 5 == 0 %}
+            </tr>
+            <tr class="element">
+          {% endif %}
+        {% endfor %}
+      </tr>
+    </table>
+  </article>
+</section>
+
+</body>
+</html>
+
