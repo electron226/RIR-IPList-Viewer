@@ -12,26 +12,32 @@ FILES_LESS = [
 FilePathNoEXT = (filename) ->
     return filename.substr(0, filename.lastIndexOf("."))
 
-task 'compile', 'compile less and coffee script.', (options) ->
-    # LESS
-    for lessFile in FILES_LESS
-        NOEXT_CSS = FilePathNoEXT(lessFile)
-        exec "lessc #{lessFile} > #{NOEXT_CSS}.css", (err, stdout, stderr) ->
-            return console.error err if err
-            console.log "Compiled #{lessFile}"
+compileLess = (file) ->
+    exec "lessc #{file} #{file.replace('.less', '.css')}", (err, stdout, stderr) ->
+        return console.error err if err
+        console.log "Compiled #{file}"
 
-            exec "yui-compressor --type css --charset UTF-8 -o #{NOEXT_CSS}.min.css #{NOEXT_CSS}.css", (err, stdout, stderr) ->
-                return console.error err if err
-                console.log "minimized from #{NOEXT_CSS}.css to #{NOEXT_CSS}.min.css"
+reduceLess = (file) ->
+    NOEXT_CSS = FilePathNoEXT(file)
+    exec "yui-compressor --type css --charset UTF-8 -o #{NOEXT_CSS}.min.css #{NOEXT_CSS}.css", (err, stdout, stderr) ->
+        return console.error err if err
+        console.log "minimized from #{NOEXT_CSS}.css to #{NOEXT_CSS}.min.css"
 
-    # Coffee Script
-    for coffeeFile in FILES_COFFEE
-        NOEXT_JS = FilePathNoEXT(coffeeFile)
-        exec "coffee -c #{coffeeFile}", (err, stdout, stderr) ->
-            return console.error err if err
-            console.log "Compiled #{coffeeFile}"
+compileCoffee = (file) ->
+    exec "coffee -c #{file}", (err, stdout, stderr) ->
+        return console.error err if err
+        console.log "Compiled #{file}"
 
-            exec "compiler --js_output_file #{NOEXT_JS}.min.js --js #{NOEXT_JS}.js", (err, stdout, stderr) ->
-                return console.error err if err
-                console.log "minimized from #{NOEXT_JS}.js to #{NOEXT_JS}.min.js"
+reduceCoffee = (file) ->
+    NOEXT_JS = FilePathNoEXT(file)
+    exec "compiler --js_output_file #{NOEXT_JS}.min.js --js #{NOEXT_JS}.js", (err, stdout, stderr) ->
+        return console.error err if err
+        console.log "minimized from #{NOEXT_JS}.js to #{NOEXT_JS}.min.js"
 
+task 'build', 'compile less and coffee script.', (options) ->
+    compileLess(file) for file in FILES_LESS
+    compileCoffee(file) for file in FILES_COFFEE
+
+task 'reduce', 'reduce less and coffee script.', (options) ->
+    reduceLess(file) for file in FILES_LESS
+    reduceCoffee(file) for file in FILES_COFFEE

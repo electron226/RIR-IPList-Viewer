@@ -27,9 +27,9 @@ $.fn.state = (state) ->
         $this = $(@)
         $this.html( $this.data()[state] )
         if state == "loading"
-            $this.addClass(d).attr(d, d)
+            $this.addClass(d).prop(d, d)
         else
-            $this.removeClass(d).removeAttr(d)
+            $this.removeClass(d).removeProp(d)
 
 # -------------------------------------------------------------
 # IP一覧の更新処理
@@ -138,9 +138,9 @@ $('button.sort_item').click ->
     name = @.name
     if before_selected != name
         # 前回ソートしたものと別の場合の初期値
-        $this.attr('value', 'asc')
+        $this.prop('value', 'asc')
 
-    state = $this.attr('value')
+    state = $this.prop('value')
     try
         if state == 'asc'
             # 昇順
@@ -163,7 +163,7 @@ $('button.sort_item').click ->
                     )
                 else
                     throw "sort asc error."
-            $this.attr('value', 'desc')
+            $this.prop('value', 'desc')
         else
             # 降順
             switch name
@@ -185,7 +185,7 @@ $('button.sort_item').click ->
                     )
                 else
                     throw "sort desc error."
-            $this.attr('value', 'asc')
+            $this.prop('value', 'asc')
 
         root.ChangeRow(view_count)
         before_selected = name
@@ -335,7 +335,7 @@ SearchCommonCloseBtnString = (element) ->
 # IPアドレス入力欄の要素を加工して返す
 InputSearchIP = $('input#ip_search_box')
 GetInputIP = ->
-    return escape($.trim(InputSearchIP.attr('value')))
+    return escape($.trim(InputSearchIP.prop('value')))
 
 # 検索読み込みサークル
 SearchCircle = $('#search_circle')
@@ -350,8 +350,8 @@ IPSearch.click ->
     close_btn = SearchCommonCloseBtnString(@)
 
     # デフォルトの表示メッセージ
-    IPSearch.attr('data-original-title', "検索エラー")
-    IPSearch.attr(
+    IPSearch.prop('data-original-title', "検索エラー")
+    IPSearch.prop(
         'data-content',
         "<p>正しいIPアドレスを入力してください。</p>" + close_btn)
 
@@ -393,6 +393,7 @@ IPSearch.click ->
             catch error
                 message = error
 
+            console.log message
             IPSearch.attr('data-content', message + close_btn)
         error: ->
             console.log('IP Search Error')
@@ -412,8 +413,8 @@ WhoisSearch.click ->
     close_btn = SearchCommonCloseBtnString(@)
 
     # デフォルトのメッセージ
-    WhoisSearch.attr('data-original-title', "Whois検索エラー")
-    WhoisSearch.attr(
+    WhoisSearch.prop('data-original-title', "Whois検索エラー")
+    WhoisSearch.prop(
         'data-content',
         "<p>正しいIPアドレスを入力してください。</p>" + close_btn)
 
@@ -496,39 +497,39 @@ $('#country .save').click ->
 
 # レジストリのチェックボックスを外した場合、ALLにチェックがあったらはずす
 $('#registry .rir').click ->
-    if $('#registry_all').attr 'checked'
-        $('#registry_all').removeAttr 'checked'
+    if $('#registry_all').prop 'checked'
+        $('#registry_all').removeProp 'checked'
 
 # 国名のチェックボックスを外した場合、ALLにチェックがあったらはずす
 $('#country .cc').click ->
-    if $('#country_all').attr 'checked'
-        $('#country_all').removeAttr 'checked'
+    if $('#country_all').prop 'checked'
+        $('#country_all').removeProp 'checked'
 
 # -------------------------------------------------------------
 
+CheckAllToggle = (selector, state) ->
+    if state
+        $(selector).prop {'checked': true}
+    else
+        $(selector).prop {'checked': false}
+
 # レジストリを全てチェック
 $('#registry .all').click ->
-    if @.checked
-        $('#registry input').attr 'checked', 'checked'
-    else
-        $('#registry input').removeAttr 'checked'
+    CheckAllToggle '#registry input', @.checked
 
 # 国名を全てチェック
 $('#country .all').click ->
-    if @.checked
-        $('#country input').attr 'checked', 'checked'
-    else
-        $('#country input').removeAttr 'checked'
+    CheckAllToggle '#country input', @.checked
 
 # -------------------------------------------------------------
 
 # レジストリのチェックを全てクリア
 FormRegClear = $('#registry .clear').click ->
-    $('#registry input').removeAttr 'checked'
+    $('#registry input').prop { 'checked': false }
 
 # 国名のチェックを全てクリア
 FormCCClear = $('#country .clear').click ->
-    $('#country input').removeAttr 'checked'
+    $('#country input').prop { 'checked': false }
 
 # -------------------------------------------------------------
 # モーダルウィンドウ(カスタマイズ)
@@ -537,9 +538,9 @@ custom_area = $('#custom input')
 default_custom_text = "<CC>: <IPSTART>-<IPEND>"
 
 CustomTextPlus = (value) ->
-    setting_text = custom_area.attr('value')
+    setting_text = custom_area.prop('value')
     setting_text += value
-    custom_area.attr('value', setting_text)
+    custom_area.prop('value', setting_text)
 
 $('#custom .set_registry').click ->
     CustomTextPlus("<REGISTRY>")
@@ -564,11 +565,11 @@ CReset = $('#custom .reset').click ->
     CTextReplace.keyup()
 
 CClear = $('#custom .clear').click ->
-    custom_area.attr('value', '')
+    custom_area.prop('value', '')
     $("#custom .result").text("")
 
 CTextReplace = custom_area.keyup ->
-    value = $(@).attr('value')
+    value = $(@).prop('value')
     str = $.trim(value)
 
     ## 出力例 ##
@@ -612,7 +613,7 @@ $("#custom .download").click ->
               + "どちらか片方の取得したいチェックボックスを選択して、" \
               + "再度行ってください。"
     else
-        custom_value = custom_area.attr('value')
+        custom_value = custom_area.prop('value')
         custom_text = $.trim(custom_value)
 
         if registry_checks.length > 0
