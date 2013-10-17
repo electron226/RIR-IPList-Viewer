@@ -377,7 +377,6 @@
           error = _error;
           message = error;
         }
-        console.log(message);
         return IPSearch.attr('data-content', message + close_btn);
       },
       error: function() {

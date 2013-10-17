@@ -393,7 +393,6 @@ IPSearch.click ->
             catch error
                 message = error
 
-            console.log message
             IPSearch.attr('data-content', message + close_btn)
         error: ->
             console.log('IP Search Error')
