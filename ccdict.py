@@ -262,4 +262,5 @@ countries_dict = {
         u'ZA': u'南アフリカ共和国',
         u'ZM': u'ザンビア',
         u'ZW': u'ジンバブエ',
+        u'ZZ': u'共同観測',
     }
